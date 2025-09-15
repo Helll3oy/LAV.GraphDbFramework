@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Core", "LAV.GraphDbFramework.Core\LAV.GraphDbFramework.Core.csproj", "{DCCF30B6-BF59-4B5F-BB2D-CE355BCB6B1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Client", "LAV.GraphDbFramework.Client\LAV.GraphDbFramework.Client.csproj", "{241F50F3-A863-40C8-8AC0-39E17F7F0DA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Neo4j", "LAV.GraphDbFramework.Neo4j\LAV.GraphDbFramework.Neo4j.csproj", "{1927A32D-D689-4854-97EE-40534CBD6143}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.SourceGenerators", "LAV.GraphDbFramework.SourceGenerators\LAV.GraphDbFramework.SourceGenerators.csproj", "{CDB73FCC-84ED-4C3D-890E-9F673709936F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Memgraph", "LAV.GraphDbFramework.Memgraph\LAV.GraphDbFramework.Memgraph.csproj", "{DDB276B6-BDFF-442D-A3E9-690B9A572D37}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DCCF30B6-BF59-4B5F-BB2D-CE355BCB6B1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCCF30B6-BF59-4B5F-BB2D-CE355BCB6B1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCCF30B6-BF59-4B5F-BB2D-CE355BCB6B1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCCF30B6-BF59-4B5F-BB2D-CE355BCB6B1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{241F50F3-A863-40C8-8AC0-39E17F7F0DA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{241F50F3-A863-40C8-8AC0-39E17F7F0DA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{241F50F3-A863-40C8-8AC0-39E17F7F0DA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{241F50F3-A863-40C8-8AC0-39E17F7F0DA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1927A32D-D689-4854-97EE-40534CBD6143}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1927A32D-D689-4854-97EE-40534CBD6143}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1927A32D-D689-4854-97EE-40534CBD6143}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1927A32D-D689-4854-97EE-40534CBD6143}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDB73FCC-84ED-4C3D-890E-9F673709936F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDB73FCC-84ED-4C3D-890E-9F673709936F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDB73FCC-84ED-4C3D-890E-9F673709936F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDB73FCC-84ED-4C3D-890E-9F673709936F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6AEFEF5F-566D-46AC-86B4-6D3055BCBB6C}
+	EndGlobalSection
+EndGlobal

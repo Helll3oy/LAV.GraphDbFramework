@@ -1,0 +1,90 @@
+﻿using LAV.GraphDbFramework.Core;
+using LAV.GraphDbFramework.Core.UnitOfWork;
+using LAV.GraphDbFramework.Memgraph.UnitOfWork;
+using Microsoft.Extensions.Logging;
+using Neo4j.Driver;
+using System;
+using System.Collections.Concurrent;
+
+namespace LAV.GraphDbFramework.Memgraph;
+
+public sealed class MemgraphClient : IGraphClient
+{
+    private readonly IDriver _driver;
+    private readonly ILogger<MemgraphClient>? _logger;
+    private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly ConcurrentBag<IAsyncSession> _sessions = [];
+    private bool _disposed;
+
+    public MemgraphClient(string host, string username, string password, ILoggerFactory? loggerFactory = null)
+    {
+        _driver = GraphDatabase.Driver(host, AuthTokens.Basic(username, password),
+            o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
+        _logger = loggerFactory?.CreateLogger<MemgraphClient>();
+        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, loggerFactory?.CreateLogger<MemgraphUnitOfWork>());
+    }
+
+    public IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
+
+    public async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    {
+        var session = _driver.AsyncSession();
+        _sessions.Add(session);
+
+        try
+        {
+            return await session.ExecuteReadAsync(async tx =>
+                await operation(new MemgraphQueryRunner(tx, _logger)));
+        }
+        finally
+        {
+            await session.CloseAsync();
+            _sessions.TryTake(out _);
+        }
+    }
+
+    public async ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    {
+        var session = _driver.AsyncSession();
+        _sessions.Add(session);
+
+        try
+        {
+            return await session.ExecuteWriteAsync(async tx =>
+                await operation(new MemgraphQueryRunner(tx, _logger)));
+        }
+        finally
+        {
+            await session.CloseAsync();
+            _sessions.TryTake(out _);
+        }
+    }
+
+    public async ValueTask<IGraphUnitOfWork> BeginUnitOfWorkAsync()
+    {
+        return await _unitOfWorkFactory.CreateAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        // Закрываем все активные сессии
+        foreach (var session in _sessions)
+        {
+            try
+            {
+                await session.CloseAsync();
+            }
+            catch
+            {
+                // Игнорируем ошибки при закрытии
+            }
+        }
+
+        await _driver.DisposeAsync();
+        _sessions.Clear();
+    }
+}
