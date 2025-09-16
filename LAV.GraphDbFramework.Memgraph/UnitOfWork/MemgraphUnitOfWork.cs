@@ -14,21 +14,25 @@ public sealed class MemgraphUnitOfWork : IGraphUnitOfWork
 {
     private readonly IAsyncSession _session;
     private readonly IAsyncTransaction _transaction;
-    private readonly ILogger<MemgraphUnitOfWork> _logger;
+
+	private readonly ILoggerFactory _loggerFactory;
+	private readonly ILogger<MemgraphUnitOfWork> _logger;
     private bool _disposed;
     private bool _committed;
 
     public bool IsDisposed => _disposed;
     public bool IsCommitted => _committed;
 
-    public MemgraphUnitOfWork(IDriver driver, ILogger<MemgraphUnitOfWork> logger)
+    public MemgraphUnitOfWork(IDriver driver, ILoggerFactory loggerFactory)
     {
-        _logger = logger;
+        _loggerFactory = loggerFactory;
+        _logger = _loggerFactory.CreateLogger<MemgraphUnitOfWork>();
         _session = driver.AsyncSession();
         _transaction = _session.BeginTransactionAsync().GetAwaiter().GetResult();
     }
 
     public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters = null)
+        where T : class, new()
     {
         ThrowIfDisposed();
 
@@ -41,7 +45,7 @@ public sealed class MemgraphUnitOfWork : IGraphUnitOfWork
             results.Add(MapperCache<T>.MapFromRecord(new MemgraphRecord(record)));
         }
 
-        return results;
+		return results;
     }
 
     public async ValueTask CommitAsync()
@@ -91,7 +95,8 @@ public sealed class MemgraphUnitOfWork : IGraphUnitOfWork
     }
 
     public ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T> mapper)
-    {
+		where T : class, new()
+	{
         throw new NotImplementedException();
     }
 }

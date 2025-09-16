@@ -1,0 +1,16 @@
+@LAV.GraphDbFramewoork.Example_HostAddress = http://localhost:5217
+
+GET {{LAV.GraphDbFramewoork.Example_HostAddress}}/
+Accept: application/json
+
+###
+
+POST {{LAV.GraphDbFramewoork.Example_HostAddress}}/users
+Accept: application/json
+
+###
+
+GET {{LAV.GraphDbFramewoork.Example_HostAddress}}/api/products/
+Accept: application/json
+
+###

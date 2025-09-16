@@ -1,6 +1,7 @@
 ﻿using LAV.GraphDbFramework.Core.Mapping;
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 using Neo4j.Driver;
 using System;
 using System.Collections.Generic;
@@ -10,25 +11,20 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Neo4j.UnitOfWork;
 
-public sealed class Neo4jUnitOfWork : IGraphUnitOfWork
+public sealed class Neo4jUnitOfWork : BaseGraphUnitOfWork
 {
     private readonly IAsyncSession _session;
     private readonly IAsyncTransaction _transaction;
-    private readonly ILogger<Neo4jUnitOfWork> _logger;
-    private bool _disposed;
-    private bool _committed;
 
-    public bool IsDisposed => _disposed;
-    public bool IsCommitted => _committed;
-
-    public Neo4jUnitOfWork(IDriver driver, ILogger<Neo4jUnitOfWork> logger)
+    public Neo4jUnitOfWork(IDriver driver, ILogger<Neo4jUnitOfWork> logger) : base(logger)
     {
-        _logger = logger;
         _session = driver.AsyncSession();
-        _transaction = _session.BeginTransactionAsync().GetAwaiter().GetResult();
+
+        var ctx = new JoinableTaskContext();
+		_transaction = ctx.Factory.Run(() => _session.BeginTransactionAsync());
     }
 
-    public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters = null)
+    public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters)
     {
         ThrowIfDisposed();
 
@@ -43,55 +39,41 @@ public sealed class Neo4jUnitOfWork : IGraphUnitOfWork
 
         return results;
     }
+	public override ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T>? mapper)
+	{
+		throw new NotImplementedException();
+	}
 
-    public async ValueTask CommitAsync()
+	public override async ValueTask CommitAsync()
     {
         ThrowIfDisposed();
 
         await _transaction.CommitAsync();
-        _committed = true;
-        _logger?.LogDebug("Neo4j UnitOfWork committed");
+        MarkCommitted();
+        Logger.LogDebug("Neo4j UnitOfWork committed");
     }
 
-    public async ValueTask RollbackAsync()
+    public override async ValueTask RollbackAsync()
     {
         ThrowIfDisposed();
 
         await _transaction.RollbackAsync();
-        _logger?.LogDebug("Neo4j UnitOfWork rolled back");
+		Logger.LogDebug("Neo4j UnitOfWork rolled back");
     }
 
-    public async ValueTask DisposeAsync()
+	protected override async ValueTask InternalDisposeAsync()
     {
-        if (_disposed) return;
-
-        if (!_committed)
-        {
-            try
-            {
-                await RollbackAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Error during rollback on dispose");
-            }
-        }
-
         await _transaction.DisposeAsync();
         await _session.DisposeAsync();
-        _disposed = true;
     }
 
-    private void ThrowIfDisposed()
-    {
-        if (!_disposed)
-            return;
+    //private void ThrowIfDisposed()
+    //{
+    //    if (!IsDisposed)
+    //        return;
 
-        throw new ObjectDisposedException(nameof(Neo4jUnitOfWork));
-    }
+    //    throw new ObjectDisposedException(nameof(Neo4jUnitOfWork));
+    //}
 
-    public ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T> mapper)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

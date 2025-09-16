@@ -12,16 +12,20 @@ public sealed class MemgraphClient : IGraphClient
 {
     private readonly IDriver _driver;
     private readonly ILogger<MemgraphClient>? _logger;
-    private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly ILoggerFactory _loggerFactory;
+
+	private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ConcurrentBag<IAsyncSession> _sessions = [];
     private bool _disposed;
 
-    public MemgraphClient(string host, string username, string password, ILoggerFactory? loggerFactory = null)
+	public MemgraphClient(string host, string username, string password, ILoggerFactory loggerFactory)
     {
         _driver = GraphDatabase.Driver(host, AuthTokens.Basic(username, password),
             o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
-        _logger = loggerFactory?.CreateLogger<MemgraphClient>();
-        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, loggerFactory?.CreateLogger<MemgraphUnitOfWork>());
+
+        _loggerFactory = loggerFactory;
+		_logger = _loggerFactory.CreateLogger<MemgraphClient>();
+        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, _loggerFactory);
     }
 
     public IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
@@ -34,7 +38,7 @@ public sealed class MemgraphClient : IGraphClient
         try
         {
             return await session.ExecuteReadAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, _logger)));
+                await operation(new MemgraphQueryRunner(tx, _loggerFactory)));
         }
         finally
         {
@@ -51,7 +55,7 @@ public sealed class MemgraphClient : IGraphClient
         try
         {
             return await session.ExecuteWriteAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, _logger)));
+                await operation(new MemgraphQueryRunner(tx, _loggerFactory)));
         }
         finally
         {

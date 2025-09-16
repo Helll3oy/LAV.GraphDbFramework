@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Source
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Memgraph", "LAV.GraphDbFramework.Memgraph\LAV.GraphDbFramework.Memgraph.csproj", "{DDB276B6-BDFF-442D-A3E9-690B9A572D37}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Examples", "LAV.GraphDbFramework.Examples\LAV.GraphDbFramework.Examples.csproj", "{95151B16-EB0A-4A45-8174-33E4675999C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDB276B6-BDFF-442D-A3E9-690B9A572D37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95151B16-EB0A-4A45-8174-33E4675999C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95151B16-EB0A-4A45-8174-33E4675999C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95151B16-EB0A-4A45-8174-33E4675999C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95151B16-EB0A-4A45-8174-33E4675999C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

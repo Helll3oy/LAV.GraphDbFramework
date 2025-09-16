@@ -14,17 +14,20 @@ namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGraphUnitOfWorkFactory
 {
     private readonly IDriver _driver;
-    private readonly ILogger<Neo4jUnitOfWork> _logger;
+    private readonly ILogger<Neo4jUnitOfWorkFactory> _logger;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public Neo4jUnitOfWorkFactory(IDriver driver, ILogger<Neo4jUnitOfWork> logger)
+
+	public Neo4jUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
     {
         _driver = driver;
-        _logger = logger;
+        _loggerFactory = loggerFactory;
+		_logger = loggerFactory.CreateLogger<Neo4jUnitOfWorkFactory>();
     }
 
     public override IGraphUnitOfWork Create()
     {
-        return new Neo4jUnitOfWork(_driver, _logger);
+        return new Neo4jUnitOfWork(_driver, _loggerFactory);
     }
 
     public async Task<IGraphUnitOfWork> CreateAsync()

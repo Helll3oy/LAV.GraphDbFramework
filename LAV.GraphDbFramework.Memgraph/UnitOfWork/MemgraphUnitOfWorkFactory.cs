@@ -14,17 +14,20 @@ namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 public class MemgraphUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGraphUnitOfWorkFactory
 {
     private readonly IDriver _driver;
-    private readonly ILogger<MemgraphUnitOfWork>? _logger;
+	private readonly ILoggerFactory _loggerFactory;
 
-    public MemgraphUnitOfWorkFactory(IDriver driver, ILogger<MemgraphUnitOfWork>? logger = null)
+	private readonly ILogger<MemgraphUnitOfWork> _logger;
+
+    public MemgraphUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
     {
         _driver = driver;
-        _logger = logger;
+        _loggerFactory = loggerFactory;
+        _logger = _loggerFactory.CreateLogger<MemgraphUnitOfWork>();
     }
 
     public override IGraphUnitOfWork Create()
     {
-        return new MemgraphUnitOfWork(_driver, _logger);
+        return new MemgraphUnitOfWork(_driver, _loggerFactory);
     }
 
     public async Task<IGraphUnitOfWork> CreateAsync()

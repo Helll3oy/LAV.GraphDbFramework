@@ -44,7 +44,7 @@ public class GraphMapGenerator : IIncrementalGenerator
             foreach (var attribute in attributeList.Attributes)
             {
                 var symbol = model.GetSymbolInfo(attribute).Symbol;
-                if (symbol?.ToDisplayString() == "LAV.GraphDbFramework.Core.Attributes.GraphMapAttribute")
+                if (symbol != null && symbol.ToDisplayString().StartsWith("LAV.GraphDbFramework.Core.Attributes.GraphMapAttribute"))
                     return classDeclaration;
             }
         }
@@ -79,47 +79,73 @@ public class GraphMapGenerator : IIncrementalGenerator
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Collections.Frozen;");
-        sb.AppendLine("using GraphDbFramework.Core;");
+        sb.AppendLine("using LAV.GraphDbFramework.Core;");
         sb.AppendLine();
         sb.AppendLine($"namespace {namespaceName}");
         sb.AppendLine("{");
         sb.AppendLine($"    public static partial class {className}Mapper");
         sb.AppendLine("    {");
 
-        // Генерируем статическое FrozenDictionary для быстрого доступа
-        sb.AppendLine($"        private static readonly FrozenDictionary<string, Action<{className}, IRecord>> PropertySetters = CreatePropertySetters();");
-        sb.AppendLine();
-        sb.AppendLine($"        private static FrozenDictionary<string, Action<{className}, IRecord>> CreatePropertySetters()");
-        sb.AppendLine("        {");
-        sb.AppendLine("            var setters = new Dictionary<string, Action<User, IRecord>>");
-        sb.AppendLine("            {");
+        //// Генерируем статическое FrozenDictionary для быстрого доступа
+        //sb.AppendLine($"        private static readonly FrozenDictionary<string, Action<{className}, IRecord>> PropertySetters = CreatePropertySetters();");
+        //sb.AppendLine();
+        //sb.AppendLine($"        private static FrozenDictionary<string, Action<{className}, IRecord>> CreatePropertySetters()");
+        //sb.AppendLine("        {");
+        //sb.AppendLine("            var setters = new Dictionary<string, Action<User, IRecord>>");
+        //sb.AppendLine("            {");
 
-        foreach (var property in properties)
-        {
-            var propertyName = property.Name;
-            var propertyType = property.Type.ToDisplayString();
+        //foreach (var property in properties)
+        //{
+        //    var propertyName = property.Name;
+        //    var propertyType = property.Type.ToDisplayString();
 
-            sb.AppendLine($"                [\"{propertyName}\"] = (obj, record) =>");
-            sb.AppendLine($"                {{");
-            sb.AppendLine($"                    if (record.TryGet<{propertyType}>(\"{propertyName}\", out var value))");
-            sb.AppendLine($"                        obj.{propertyName} = value;");
-            sb.AppendLine($"                }},");
-        }
+        //    sb.AppendLine($"                [\"{propertyName}\"] = (obj, record) =>");
+        //    sb.AppendLine($"                {{");
+        //    sb.AppendLine($"                    if (record.TryGet<{propertyType}>(\"{propertyName}\", out var value))");
+        //    sb.AppendLine($"                        obj.{propertyName} = value;");
+        //    sb.AppendLine($"                }},");
+        //}
 
-        sb.AppendLine("            };");
-        sb.AppendLine("            return setters.ToFrozenDictionary();");
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        //sb.AppendLine("            };");
+        //sb.AppendLine("            return setters.ToFrozenDictionary();");
+        //sb.AppendLine("        }");
+        //sb.AppendLine();
 
         // Метод маппинга
         sb.AppendLine($"        public static {className} MapFromRecord(IRecord record)");
         sb.AppendLine("        {");
-        sb.AppendLine($"            var obj = new {className}();");
-        sb.AppendLine("            foreach (var setter in PropertySetters)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                setter.Value(obj, record);");
-        sb.AppendLine("            }");
-        sb.AppendLine("            return obj;");
+        sb.AppendLine($"           var obj = new {className}();");
+
+		//sb.AppendLine("            foreach (var setter in PropertySetters)");
+		//sb.AppendLine("            {");
+		//sb.AppendLine("                setter.Value(obj, record);");
+		//sb.AppendLine("            }");
+                                                                                                             
+		foreach (var property in properties)
+		{
+			var propertyName = property.Name;
+			var propertyType = property.Type.ToDisplayString();
+
+			sb.AppendLine($"            if (record.TryGet<{propertyType}>(\"{propertyName}\", out var {propertyName.ToLowerInvariant()}Value))");
+			sb.AppendLine($"            {{");
+            if (propertyType.Equals("System.DateTime"))
+            {
+                var valName = $"{propertyName.ToLowerInvariant()}Value";
+				sb.AppendLine($"                obj.{propertyName} = {valName}.Kind == DateTimeKind.Utc ? {valName}.ToLocalTime() : {valName};");
+            }
+			if (propertyType.Equals("System.DateTime?"))
+			{
+				var valName = $"{propertyName.ToLowerInvariant()}Value.Value";
+				sb.AppendLine($"                obj.{propertyName} = {valName}.Kind == DateTimeKind.Utc ? {valName}.ToLocalTime() : {valName};");
+			}
+			else
+            {
+				sb.AppendLine($"                obj.{propertyName} = {propertyName.ToLowerInvariant()}Value;");
+			}
+            sb.AppendLine($"            }}");
+		}
+
+		sb.AppendLine("            return obj;");
         sb.AppendLine("        }");
         sb.AppendLine();
 
@@ -131,8 +157,21 @@ public class GraphMapGenerator : IIncrementalGenerator
         foreach (var property in properties)
         {
             var propertyName = property.Name;
-            sb.AppendLine($"            if (obj.{propertyName} is not null)");
-            sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName};");
+			var propertyType = property.Type.ToDisplayString();
+
+			sb.AppendLine($"            if (obj.{propertyName} is not null)");
+            if (propertyType.Equals("System.DateTime"))
+            {
+				sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName}.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.ToUniversalTime();");
+			}
+			else if (propertyType.Equals("System.DateTime?"))
+			{
+				sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName}.Value.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.Value.ToUniversalTime();");
+			}
+			else
+            {
+                sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName};");
+            }
         }
 
         sb.AppendLine("            return properties.ToFrozenDictionary();");

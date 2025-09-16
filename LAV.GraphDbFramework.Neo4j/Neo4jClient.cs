@@ -15,22 +15,22 @@ namespace LAV.GraphDbFramework.Neo4j;
 public sealed class Neo4jClient : IGraphClient
 {
     private readonly IDriver _driver;
-    private readonly ILogger<Neo4jClient>? _logger;
-    private readonly Neo4jUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly ILogger<Neo4jClient> _logger;
+	private readonly ILoggerFactory _loggerFactory;
+	private readonly Neo4jUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ConcurrentBag<IAsyncSession> _sessions = [];
     private bool _disposed;
 
-    public Neo4jClient(string uri, string username, string password, ILogger<Neo4jClient>? logger = null)
+    public Neo4jClient(string uri, string username, string password, ILoggerFactory loggerFactory)
     {
         _driver = GraphDatabase.Driver(uri, AuthTokens.Basic(username, password),
             o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
-        _logger = logger;
-        _unitOfWorkFactory = new Neo4jUnitOfWorkFactory(_driver, logger);
+        _logger = loggerFactory.CreateLogger<Neo4jClient>();
+        _loggerFactory = loggerFactory;
+        _unitOfWorkFactory = new Neo4jUnitOfWorkFactory(_driver, loggerFactory);
     }
 
     public IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
-
-    public IGraphUnitOfWorkFactory UnitOfWorkFactory => throw new NotImplementedException();
 
     public async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
     {
@@ -40,7 +40,7 @@ public sealed class Neo4jClient : IGraphClient
         try
         {
             return await session.ExecuteReadAsync(async tx =>
-                await operation(new Neo4jQueryRunner(tx, _logger)));
+                await operation(new Neo4jQueryRunner(tx, _loggerFactory)));
         }
         finally
         {
@@ -57,7 +57,7 @@ public sealed class Neo4jClient : IGraphClient
         try
         {
             return await session.ExecuteWriteAsync(async tx =>
-                await operation(new Neo4jQueryRunner(tx, _logger)));
+                await operation(new Neo4jQueryRunner(tx, _loggerFactory)));
         }
         finally
         {
