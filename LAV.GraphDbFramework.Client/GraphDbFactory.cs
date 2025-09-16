@@ -12,7 +12,7 @@ namespace LAV.GraphDbFramework.Client;
 
 public static class GraphDbFactory
 {
-    public static IGraphClient CreateClient(GraphDbOptions options, ILoggerFactory loggerFactory)
+    public static IGraphDbClient CreateClient(GraphDbOptions options, ILoggerFactory loggerFactory)
     {
         return options.DbType switch
         {

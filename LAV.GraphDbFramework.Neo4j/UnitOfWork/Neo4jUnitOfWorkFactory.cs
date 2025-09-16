@@ -17,7 +17,6 @@ public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGra
     private readonly ILogger<Neo4jUnitOfWorkFactory> _logger;
     private readonly ILoggerFactory _loggerFactory;
 
-
 	public Neo4jUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
     {
         _driver = driver;

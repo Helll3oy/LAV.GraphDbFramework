@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Neo4j;
 
-public sealed class Neo4jClient : IGraphClient
+public sealed class Neo4jClient : IGraphDbClient
 {
     private readonly IDriver _driver;
     private readonly ILogger<Neo4jClient> _logger;

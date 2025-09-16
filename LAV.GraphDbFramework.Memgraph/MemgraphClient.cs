@@ -2,35 +2,32 @@
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using LAV.GraphDbFramework.Memgraph.UnitOfWork;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using System;
 using System.Collections.Concurrent;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-public sealed class MemgraphClient : IGraphClient
+public sealed class MemgraphClient : BaseGraphDbClient
 {
     private readonly IDriver _driver;
-    private readonly ILogger<MemgraphClient>? _logger;
-    private readonly ILoggerFactory _loggerFactory;
 
 	private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ConcurrentBag<IAsyncSession> _sessions = [];
     private bool _disposed;
 
-	public MemgraphClient(string host, string username, string password, ILoggerFactory loggerFactory)
+	public MemgraphClient(string host, string username, string password, ILogger<MemgraphClient> logger) : base(logger)
     {
         _driver = GraphDatabase.Driver(host, AuthTokens.Basic(username, password),
             o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
 
-        _loggerFactory = loggerFactory;
-		_logger = _loggerFactory.CreateLogger<MemgraphClient>();
-        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, _loggerFactory);
+        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, Logger);
     }
 
-    public IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
+    public override IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
 
-    public async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    public override async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
     {
         var session = _driver.AsyncSession();
         _sessions.Add(session);
@@ -38,7 +35,7 @@ public sealed class MemgraphClient : IGraphClient
         try
         {
             return await session.ExecuteReadAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, _loggerFactory)));
+                await operation(new MemgraphQueryRunner(tx, Logger)));
         }
         finally
         {
@@ -47,7 +44,7 @@ public sealed class MemgraphClient : IGraphClient
         }
     }
 
-    public async ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    public override async ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
     {
         var session = _driver.AsyncSession();
         _sessions.Add(session);
@@ -55,7 +52,7 @@ public sealed class MemgraphClient : IGraphClient
         try
         {
             return await session.ExecuteWriteAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, _loggerFactory)));
+                await operation(new MemgraphQueryRunner(tx, Logger)));
         }
         finally
         {
@@ -64,17 +61,8 @@ public sealed class MemgraphClient : IGraphClient
         }
     }
 
-    public async ValueTask<IGraphUnitOfWork> BeginUnitOfWorkAsync()
+    protected override async ValueTask InternalDisposeAsync()
     {
-        return await _unitOfWorkFactory.CreateAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-
-        _disposed = true;
-
         // Закрываем все активные сессии
         foreach (var session in _sessions)
         {

@@ -15,11 +15,11 @@ public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposab
 	protected IGraphUnitOfWork UnitOfWork { get; private set; }
 	protected bool IsExternalUnitOfWork { get; private set; }
 
-	protected BaseGraphRepository(/*IGraphClient client, */IServiceProvider provider)
+	protected BaseGraphRepository(/*IGraphDbClient client, */IServiceProvider provider)
 	{
 		var uowFactory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
 		// По умолчанию создаем свой UnitOfWork
-		UnitOfWork = uowFactory.Create();
+		UnitOfWork = uowFactory.CreateAsync();
 
 			//client.BeginUnitOfWorkAsync().GetAwaiter().GetResult();
 		IsExternalUnitOfWork = false;

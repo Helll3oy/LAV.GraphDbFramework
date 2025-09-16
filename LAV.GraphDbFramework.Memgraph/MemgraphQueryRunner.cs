@@ -14,21 +14,18 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-internal sealed class MemgraphQueryRunner : IQueryRunner
+internal sealed class MemgraphQueryRunner : BaseQueryRunner
 {
 	private readonly IAsyncQueryRunner _runner;
-	private readonly ILoggerFactory _loggerFactory;
-	private readonly ILogger<MemgraphQueryRunner> _logger;
 	private static readonly ConcurrentDictionary<Type, Func<Core.IRecord, object>> MapperCache = [];
-	public MemgraphQueryRunner(IAsyncQueryRunner runner, ILoggerFactory loggerFactory)
+
+	public MemgraphQueryRunner(IAsyncQueryRunner runner, Microsoft.Extensions.Logging.ILogger logger) : base(logger)
 	{
 		_runner = runner;
-		_loggerFactory = loggerFactory;
-		_logger = _loggerFactory.CreateLogger<MemgraphQueryRunner>();
+		BeginLoggerScope(this);
 	}
 
-	public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters = null)
-		where T : class, new()
+	public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters)
 	{
 		return await RunAsync(query, parameters, record =>
 		{
@@ -41,7 +38,7 @@ internal sealed class MemgraphQueryRunner : IQueryRunner
 			if (generatedMapperType?.GetMethod("MapFromRecord", BindingFlags.Public | BindingFlags.Static) is MethodInfo method)
 			{
 				var mapperFunc = (Func<Core.IRecord, T>)Delegate.CreateDelegate(typeof(Func<Core.IRecord, T>), method);
-				MapperCache[typeof(T)] = record => mapperFunc(record);
+				MapperCache[typeof(T)] = record => mapperFunc(record)!;
 				return mapperFunc(record);
 			}
 
@@ -50,8 +47,7 @@ internal sealed class MemgraphQueryRunner : IQueryRunner
 		});
 	}
 
-	public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T> mapper)
-		where T : class, new()
+	public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T>? mapper)
 	{
 		using var activity = DiagnosticsConfig.ActivitySource.StartActivity("MemgraphQuery");
 		activity?.SetTag("db.query", query);
@@ -86,19 +82,19 @@ internal sealed class MemgraphQueryRunner : IQueryRunner
 
 			activity?.SetTag("db.duration", stopwatch.Elapsed);
 
-			_logger.LogDebug("Memgraph query executed in {ElapsedMs}ms: {Query}", stopwatch.Elapsed, query);
+			Logger.LogDebug("Memgraph query executed in {ElapsedMs}ms: {Query}", stopwatch.Elapsed, query);
 
 			var results = new List<T>(records.Count);
 			foreach (var record in records)
 			{
-				results.Add(mapper(new MemgraphRecord(record)));
+				results.Add(mapper!(new MemgraphRecord(record)));
 			}
 
 			return results;
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error executing Memgraph query: {Query}", query);
+			Logger.LogError(ex, "Error executing Memgraph query: {Query}", query);
 			throw;
 		}
 	}

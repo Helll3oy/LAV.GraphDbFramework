@@ -73,7 +73,5 @@ public sealed class Neo4jUnitOfWork : BaseGraphUnitOfWork
     //        return;
 
     //    throw new ObjectDisposedException(nameof(Neo4jUnitOfWork));
-    //}
-
-    
+    //} 
 }

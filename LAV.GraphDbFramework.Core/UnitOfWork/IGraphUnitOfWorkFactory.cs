@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core.UnitOfWork;
 
-public interface IGraphUnitOfWorkFactory : IPooledObjectPolicy<IGraphUnitOfWork>
+public interface IGraphUnitOfWorkFactory// : IPooledObjectPolicy<IGraphUnitOfWork>
 {
-    Task<IGraphUnitOfWork> CreateAsync();
+    ValueTask<IGraphUnitOfWork> CreateAsync();
 }

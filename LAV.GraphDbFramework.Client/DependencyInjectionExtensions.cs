@@ -40,7 +40,7 @@ public static class DependencyInjectionExtensions
 		services.AddTransient<NodeSpecification>();
 		services.AddTransient<RelationshipSpecification>();
 
-		services.AddSingleton<IGraphClient>(provider =>
+		services.AddSingleton<IGraphDbClient>(provider =>
 		{
 			var options = provider.GetRequiredService<IOptions<GraphDbOptions>>().Value;
 			var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
@@ -51,16 +51,16 @@ public static class DependencyInjectionExtensions
 		// Регистрируем фабрику Unit of Work
 		services.AddScoped<IGraphUnitOfWorkFactory>(provider =>
 		{
-			var client = provider.GetRequiredService<IGraphClient>();
+			var client = provider.GetRequiredService<IGraphDbClient>();
 			return client.UnitOfWorkFactory;
 		});
 
-		services.AddSingleton<ObjectPool<IGraphUnitOfWork>>(provider =>
-		{
-			var factory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
-			var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();
-			return poolProvider.Create<IGraphUnitOfWork>(factory);
-		});
+		//services.AddSingleton<ObjectPool<IGraphUnitOfWork>>(provider =>
+		//{
+		//	var factory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
+		//	var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();
+		//	return poolProvider.Create<IGraphUnitOfWork>(factory);
+		//});
 
 		//// Автоматическая регистрация репозиториев
 		//services.Scan(scan => scan

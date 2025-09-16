@@ -11,37 +11,27 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 
-public class MemgraphUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGraphUnitOfWorkFactory
+public class MemgraphUnitOfWorkFactory : IGraphUnitOfWorkFactory
 {
     private readonly IDriver _driver;
 	private readonly ILoggerFactory _loggerFactory;
 
 	private readonly ILogger<MemgraphUnitOfWork> _logger;
 
-    public MemgraphUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
+    public MemgraphUnitOfWorkFactory(IDriver driver, ILogger<MemgraphUnitOfWorkFactory> logger)
     {
         _driver = driver;
-        _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<MemgraphUnitOfWork>();
+        //_loggerFactory = loggerFactory;
+        _logger = logger;
     }
 
-    public override IGraphUnitOfWork Create()
+    public IGraphUnitOfWork Create()
     {
-        return new MemgraphUnitOfWork(_driver, _loggerFactory);
+        return new MemgraphUnitOfWork(_driver, _logger);
     }
 
-    public async Task<IGraphUnitOfWork> CreateAsync()
+    public async ValueTask<IGraphUnitOfWork> CreateAsync()
     {
         return await Task.FromResult(Create());
-    }
-
-    public override bool Return(IGraphUnitOfWork obj)
-    {
-        if (!obj.IsDisposed)
-        {
-            Task.WaitAll(Task.Run(async () => await obj.DisposeAsync()));
-        }
-
-        return true;
     }
 }

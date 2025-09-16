@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core;
 
-public interface IGraphClient : IAsyncDisposable
+public interface IGraphDbClient : IAsyncDisposable
 {
     ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation);
     ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation);
