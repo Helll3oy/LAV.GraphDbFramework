@@ -19,7 +19,7 @@ public class UserRepository : BaseGraphRepository, IUserRepository
 		_userPool = null;
 		_paramPool = null;
 	}
-	public UserRepository(IServiceProvider provider) : base(provider)
+	public UserRepository(IGraphDbClient client, IServiceProvider provider) : base(client, provider)
 		//base(provider.GetRequiredService<IGraphUnitOfWorkFactory>())
 	{
 		//var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();

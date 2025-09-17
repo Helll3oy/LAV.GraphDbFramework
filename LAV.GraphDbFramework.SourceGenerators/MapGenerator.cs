@@ -112,7 +112,7 @@ public class GraphMapGenerator : IIncrementalGenerator
         //sb.AppendLine();
 
         // Метод маппинга
-        sb.AppendLine($"        public static {className} MapFromRecord(IRecord record)");
+        sb.AppendLine($"        public static {className} MapFromRecord(IGraphDbRecord record)");
         sb.AppendLine("        {");
         sb.AppendLine($"           var obj = new {className}();");
 

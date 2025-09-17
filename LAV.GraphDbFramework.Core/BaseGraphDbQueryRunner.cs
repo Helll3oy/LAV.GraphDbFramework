@@ -1,9 +1,9 @@
 ﻿using LAV.GraphDbFramework.Core;
 using Microsoft.Extensions.Logging;
 
-namespace LAV.GraphDbFramework.Memgraph;
+namespace LAV.GraphDbFramework.Core;
 
-public abstract class BaseQueryRunner<TGraphDbRecord> : IGraphDbQueryRunner<TGraphDbRecord>
+public abstract class BaseGraphDbQueryRunner<TGraphDbRecord> : IGraphDbQueryRunner
 	where TGraphDbRecord : IGraphDbRecord
 {
     private bool _disposed;
@@ -13,7 +13,7 @@ public abstract class BaseQueryRunner<TGraphDbRecord> : IGraphDbQueryRunner<TGra
 
     public bool IsDisposed => _disposed;
 
-    protected BaseQueryRunner(ILogger logger)
+    protected BaseGraphDbQueryRunner(ILogger logger)
     {
         Logger = logger;
     }
@@ -46,7 +46,11 @@ public abstract class BaseQueryRunner<TGraphDbRecord> : IGraphDbQueryRunner<TGra
         GC.SuppressFinalize(this);
     }
 
-
     public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TGraphDbRecord, T> mapper);
 	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
+
+    async ValueTask<IReadOnlyList<T>> IGraphDbQueryRunner.RunAsync<T>(string query, object? parameters, Func<IGraphDbRecord, T> mapper)
+    {
+        return await RunAsync<T>(query, parameters, record => mapper(record)).ConfigureAwait(false);
+    }
 }

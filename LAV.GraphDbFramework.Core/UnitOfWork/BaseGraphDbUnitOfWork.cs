@@ -8,58 +8,65 @@ using Microsoft.Extensions.Logging;
 
 namespace LAV.GraphDbFramework.Core.UnitOfWork;
 
-public abstract class BaseGraphDbUnitOfWork<TRecord> : IGraphDbUnitOfWork<TRecord>
-	where TRecord : IGraphDbRecord
+public abstract class BaseGraphDbUnitOfWork<TGraphDbRecord> : IGraphDbUnitOfWork
+    where TGraphDbRecord : IGraphDbRecord
 {
-	private bool _disposed;
-	private bool _committed;
+    private bool _disposed;
+    private bool _committed;
 
-	protected readonly ILogger Logger;
+    protected readonly ILogger Logger;
 
-	public bool IsDisposed => _disposed;
-	public bool IsCommitted => _committed;
+    public bool IsDisposed => _disposed;
+    public bool IsCommitted => _committed;
 
-	protected BaseGraphDbUnitOfWork(ILogger logger)
-	{
-		Logger = logger;
-	}
+    protected BaseGraphDbUnitOfWork(ILogger logger)
+    {
+        Logger = logger;
+    }
 
-	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
-	//public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<IRecord, T> mapper)
-	//{
-	//	return await InternalRunAsync<T>(query, parameters, (record) => mapper!(record));
-	//}
+    public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
 
-	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TRecord, T> mapper);
+    public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TGraphDbRecord, T> mapper);
 
-	public abstract ValueTask CommitAsync();
-	public abstract ValueTask RollbackAsync();
+    async ValueTask<IReadOnlyList<T>> IGraphDbQueryRunner.RunAsync<T>(string query, object? parameters, Func<IGraphDbRecord, T> mapper)
+    {
+        return await RunAsync<T>(query, parameters, record => mapper(record)).ConfigureAwait(false);
+    }
 
-	public async ValueTask DisposeAsync()
-	{
-		if (_disposed) return;
+    public abstract ValueTask CommitAsync();
+    public abstract ValueTask RollbackAsync();
 
-		if (!_committed)
-		{
-			try
-			{
-				await RollbackAsync();
-			}
-			catch (Exception ex)
-			{
-				Logger?.LogError(ex, "Error during rollback on dispose");
-			}
-		}
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
 
-		await InternalDisposeAsync();
+        if (!_committed)
+        {
+            try
+            {
+                await RollbackAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, "Error during rollback on dispose");
+            }
+        }
 
-		_disposed = true;
-		GC.SuppressFinalize(this);
-	}
+        await InternalDisposeAsync();
 
-	protected virtual ValueTask InternalDisposeAsync() => ValueTask.CompletedTask;
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
 
-	protected void MarkCommitted() => _committed = true;
+    protected virtual ValueTask InternalDisposeAsync() => ValueTask.CompletedTask;
 
-	
+    protected void MarkCommitted() => _committed = true;
+
+    protected void ThrowIfDisposed()
+    {
+        if (!IsDisposed)
+            return;
+
+        throw new ObjectDisposedException(this.GetType().Name);
+    }
 }

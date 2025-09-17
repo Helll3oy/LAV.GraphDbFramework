@@ -8,7 +8,9 @@ using LAV.GraphDbFramework.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddGraphDb(builder.Configuration);
+//builder.Services.AddGraphDb(builder.Configuration);
+builder.Services.AddMemgraphGraphDbClient(builder.Configuration);
+//builder.Services.AddNeo4jGraphDbClient(builder.Configuration);
 
 builder.Services.AddSingleton(provider =>
 {
@@ -16,12 +18,12 @@ builder.Services.AddSingleton(provider =>
 	return poolProvider.Create<User>(new DefaultPooledObjectPolicy<User>());
 });
 
-builder.Services.AddScoped<IUserRepository, UserRepository>(provider =>
-{
-	//var pool = provider.GetRequiredService<ObjectPool<IGraphUnitOfWork>>();
-	return new UserRepository(provider);
-});
-//builder.Services.AddScoped<IUserRepository, UserRepository>();
+//builder.Services.AddScoped<IUserRepository, UserRepository>(provider =>
+//{
+//	//var pool = provider.GetRequiredService<ObjectPool<IGraphUnitOfWork>>();
+//	return new UserRepository(provider);
+//});
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddScoped<UserService>();
 

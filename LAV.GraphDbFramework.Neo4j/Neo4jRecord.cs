@@ -5,38 +5,56 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Neo4j.Driver;
+using LAV.GraphDbFramework.Core.Extensions;
+using LAV.GraphDbFramework.Core;
 
 namespace LAV.GraphDbFramework.Neo4j;
 
-internal sealed class Neo4jRecord : Core.IRecord
+public sealed class Neo4jRecord : IGraphDbRecord
 {
     private readonly IRecord _record;
+    private readonly Dictionary<string, object>? _properties;
+    private readonly bool _hasProperties;
 
     public Neo4jRecord(IRecord record)
     {
         _record = record;
+        if (_record.Values.Values.FirstOrDefault() is Dictionary<string, object> props)
+        {
+            _hasProperties = true;
+            _properties = props;
+        }
+        else
+        {
+            _hasProperties = false;
+            _properties = null;
+        }
     }
 
     public T Get<T>(string key) => _record[key].As<T>();
 
     public bool TryGet<T>(string key, out T? value)
     {
-        if (!_record.Keys.Contains(key))
+        if (_hasProperties && _properties!.TryGetValue(key, out object? prop))
         {
-            value = default;
-            return false;
-        }
+            if (prop is ZonedDateTime zonedDateTime)
+            {
+                value = zonedDateTime.UtcDateTime.As<T>();
+            }
+            else if (prop is LocalDateTime localDateTime)
+            {
+                value = localDateTime.ToDateTime().As<T>();
+            }
+            else
+            {
+                value = prop.As<T>();
+            }
 
-        try
-        {
-            value = _record[key].As<T>();
             return true;
         }
-        catch
-        {
-            value = default;
-            return false;
-        }
+
+        value = default;
+        return false;
     }
 
     public Node GetNode(string key)

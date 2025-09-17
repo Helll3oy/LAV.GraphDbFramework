@@ -9,52 +9,64 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core;
 
-public abstract class BaseGraphDbClient<TGraphDbOptions, TGraphDbQueryRunner, TGraphDbRecord, TGraphDbUnitOfWork, TGraphDbUnitOfWorkFactory> 
+public abstract class BaseGraphDbClient<TGraphDbOptions, TGraphDbQueryRunner, TGraphDbUnitOfWork, TGraphDbUnitOfWorkFactory>
     : IGraphDbClient
     where TGraphDbOptions : IGraphDbOptions
-	where TGraphDbRecord : IGraphDbRecord
-	where TGraphDbQueryRunner : IGraphDbQueryRunner<TGraphDbRecord>
-	where TGraphDbUnitOfWork : IGraphDbUnitOfWork<TGraphDbRecord>
-	where TGraphDbUnitOfWorkFactory : IGraphDbUnitOfWorkFactory<TGraphDbUnitOfWork, TGraphDbRecord>
+    where TGraphDbQueryRunner : IGraphDbQueryRunner
+    where TGraphDbUnitOfWork : IGraphDbUnitOfWork
+    where TGraphDbUnitOfWorkFactory : IGraphDbUnitOfWorkFactory
 {
     private bool _disposed;
-	private readonly IOptionsMonitor<TGraphDbOptions> _monitor;
-	private readonly TGraphDbOptions _options;
-	private IDisposable? _subscription = null;
-	private readonly TGraphDbUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly IOptionsMonitor<TGraphDbOptions> _monitor;
+    //private readonly TGraphDbOptions _options;
+    private IDisposable? _subscription = null;
 
-	protected readonly ILogger Logger;
-	protected TGraphDbOptions Options => _options;
+    protected readonly ILogger Logger;
+    protected TGraphDbOptions Options;
 
-	public bool IsDisposed => _disposed;
+    public bool IsDisposed => _disposed;
 
     protected BaseGraphDbClient(IOptionsMonitor<TGraphDbOptions> monitor, ILogger logger)
     {
-		Logger = logger;
+        Logger = logger;
 
-		_monitor = monitor;
-        _options = monitor.CurrentValue;
+        _monitor = monitor;
+        Options = monitor.CurrentValue;
 
         _subscription = monitor.OnChange(newOptions =>
         {
-            lock (_options)
+            lock (Options)
             {
-                if (_options.ConnectionTimeout != newOptions.ConnectionTimeout)
+                if (Options.ConnectionTimeout != newOptions.ConnectionTimeout)
                 {
-					_options.ConnectionTimeout = newOptions.ConnectionTimeout;
+                    Options.ConnectionTimeout = newOptions.ConnectionTimeout;
                 }
             }
         });
     }
 
-    public TGraphDbUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
+    public abstract TGraphDbUnitOfWorkFactory UnitOfWorkFactory { get; }
+    IGraphDbUnitOfWorkFactory IGraphDbClient.UnitOfWorkFactory => UnitOfWorkFactory;
 
-	IGraphDbUnitOfWorkFactory IGraphDbClient.UnitOfWorkFactory => throw new NotImplementedException();
-
-	public virtual async ValueTask<TGraphDbUnitOfWork> BeginUnitOfWorkAsync()
+    public abstract ValueTask<TGraphDbUnitOfWork> BeginUnitOfWorkAsync();
+    async ValueTask<IGraphDbUnitOfWork> IGraphDbClient.BeginUnitOfWorkAsync()
     {
-        return await UnitOfWorkFactory.CreateAsync();
+        return await BeginUnitOfWorkAsync().ConfigureAwait(false);
     }
+
+    public abstract ValueTask<T> ExecuteReadAsync<T>(Func<TGraphDbQueryRunner, ValueTask<T>> operation);
+    async ValueTask<T> IGraphDbClient.ExecuteReadAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation)
+    {
+        return await ExecuteReadAsync<T>(queryRunner => operation(queryRunner));
+    }
+
+    public abstract ValueTask<T> ExecuteWriteAsync<T>(Func<TGraphDbQueryRunner, ValueTask<T>> operation);
+    async ValueTask<T> IGraphDbClient.ExecuteWriteAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation)
+    {
+        return await ExecuteWriteAsync<T>(queryRunner => operation(queryRunner));
+    }
+
+    protected virtual ValueTask InternalDisposeAsync() => ValueTask.CompletedTask;
 
     public async ValueTask DisposeAsync()
     {
@@ -63,30 +75,10 @@ public abstract class BaseGraphDbClient<TGraphDbOptions, TGraphDbQueryRunner, TG
         _subscription?.Dispose();
         _subscription = null;
 
-		_disposed = true;
+        _disposed = true;
 
         await InternalDisposeAsync();
-        
+
         GC.SuppressFinalize(this);
     }
-
-    public abstract ValueTask<T> ExecuteReadAsync<T>(Func<TGraphDbQueryRunner, ValueTask<T>> operation);
-    public abstract ValueTask<T> ExecuteWriteAsync<T>(Func<TGraphDbQueryRunner, ValueTask<T>> operation);
-
-    protected virtual ValueTask InternalDisposeAsync() => ValueTask.CompletedTask;
-
-	public ValueTask<T> ExecuteReadAsync<T>(Func<Core.IGraphDbQueryRunner, ValueTask<T>> operation)
-	{
-		throw new NotImplementedException();
-	}
-
-	public ValueTask<T> ExecuteWriteAsync<T>(Func<Core.IGraphDbQueryRunner, ValueTask<T>> operation)
-	{
-		throw new NotImplementedException();
-	}
-
-	ValueTask<UnitOfWork.IGraphDbUnitOfWork> IGraphDbClient.BeginUnitOfWorkAsync()
-	{
-		throw new NotImplementedException();
-	}
 }
