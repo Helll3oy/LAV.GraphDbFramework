@@ -12,7 +12,7 @@ namespace LAV.GraphDbFramework.Core.Repositories;
 
 public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposable
 {
-	protected IGraphUnitOfWork UnitOfWork { get; private set; }
+	protected IGraphDbUnitOfWork UnitOfWork { get; private set; }
 	protected bool IsExternalUnitOfWork { get; private set; }
 
 	protected BaseGraphRepository(/*IGraphDbClient client, */IServiceProvider provider)
@@ -25,7 +25,7 @@ public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposab
 		IsExternalUnitOfWork = false;
 	}
 
-	protected BaseGraphRepository(IGraphUnitOfWork unitOfWork)
+	protected BaseGraphRepository(IGraphDbUnitOfWork unitOfWork)
 	{
 		// Используем переданный извне UnitOfWork
 		UnitOfWork = unitOfWork;

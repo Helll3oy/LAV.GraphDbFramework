@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core;
 
-public interface IRecord
+public interface IGraphDbRecord
 {
     T Get<T>(string key);
     bool TryGet<T>(string key, out T? value);

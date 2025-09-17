@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 
-public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGraphUnitOfWorkFactory
+public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphDbUnitOfWork>, IGraphUnitOfWorkFactory
 {
     private readonly IDriver _driver;
     private readonly ILogger<Neo4jUnitOfWorkFactory> _logger;
@@ -24,17 +24,17 @@ public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphUnitOfWork>, IGra
 		_logger = loggerFactory.CreateLogger<Neo4jUnitOfWorkFactory>();
     }
 
-    public override IGraphUnitOfWork Create()
+    public override IGraphDbUnitOfWork Create()
     {
         return new Neo4jUnitOfWork(_driver, _loggerFactory);
     }
 
-    public async Task<IGraphUnitOfWork> CreateAsync()
+    public async Task<IGraphDbUnitOfWork> CreateAsync()
     {
         return await Task.FromResult(Create());
     }
 
-    public override bool Return(IGraphUnitOfWork obj)
+    public override bool Return(IGraphDbUnitOfWork obj)
     {
         if (!obj.IsDisposed)
         {

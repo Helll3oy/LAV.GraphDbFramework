@@ -6,32 +6,35 @@ using Neo4j.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 
-public sealed class MemgraphUnitOfWork : BaseGraphUnitOfWork
+public sealed class MemgraphUnitOfWork : BaseGraphDbUnitOfWork<MemgraphRecord>
 {
     private readonly IAsyncSession _session;
-    private readonly IAsyncTransaction _transaction;
+    private readonly Lazy<ConfiguredTaskAwaitable<IAsyncTransaction>> _transaction;
 
-    public MemgraphUnitOfWork(IDriver driver, ILogger<MemgraphUnitOfWork> logger) : base(logger)
+    private ConfiguredTaskAwaitable<IAsyncTransaction> Transaction => _transaction.Value;
+
+	public MemgraphUnitOfWork(IDriver driver, ILogger<MemgraphUnitOfWork> logger) : base(logger)
     {
         _session = driver.AsyncSession();
 
-        var ctx = new JoinableTaskContext();
-        _transaction = ctx.Factory.Run(() => _session.BeginTransactionAsync());
+		_transaction = new Lazy<ConfiguredTaskAwaitable<IAsyncTransaction>>(() =>
+            _session.BeginTransactionAsync().ConfigureAwait(false));
     }
 
     public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters)
     {
         ThrowIfDisposed();
 
-        var result = await _transaction.RunAsync(query, parameters);
+		var result = await(await Transaction).RunAsync(query, parameters);
         var records = await result.ToListAsync();
 
-        var results = new List<T>(records.Count);
+		var results = new List<T>(records.Count);
         foreach (var record in records)
         {
             results.Add(MapperCache<T>.MapFromRecord(new MemgraphRecord(record)));
@@ -40,16 +43,27 @@ public sealed class MemgraphUnitOfWork : BaseGraphUnitOfWork
         return results;
     }
 
-    public override ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IRecord, T>? mapper)
-    {
-        throw new NotImplementedException();
-    }
+	public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<MemgraphRecord, T> mapper)
+	{
+		ThrowIfDisposed();
 
-    public override async ValueTask CommitAsync()
+		var result = await(await Transaction).RunAsync(query, parameters);
+		var records = await result.ToListAsync();
+
+		var results = new List<T>(records.Count);
+		foreach (var record in records)
+		{
+			results.Add(mapper(new MemgraphRecord(record)));
+		}
+
+		return results;
+	}
+
+	public override async ValueTask CommitAsync()
     {
         ThrowIfDisposed();
 
-        await _transaction.CommitAsync();
+		await (await Transaction).CommitAsync();
         MarkCommitted();
         Logger.LogDebug("Memgraph UnitOfWork committed");
     }
@@ -58,13 +72,21 @@ public sealed class MemgraphUnitOfWork : BaseGraphUnitOfWork
     {
         ThrowIfDisposed();
 
-        await _transaction.RollbackAsync();
+		await (await Transaction).RollbackAsync();
         Logger.LogDebug("Memgraph UnitOfWork rolled back");
     }
 
     protected override async ValueTask InternalDisposeAsync()
     {
-        await _transaction.DisposeAsync();
+		await (await Transaction).DisposeAsync();
         await _session.DisposeAsync();
     }
+
+	private void ThrowIfDisposed()
+	{
+		if (!IsDisposed)
+			return;
+
+		throw new ObjectDisposedException(nameof(MemgraphUnitOfWork));
+	}
 }

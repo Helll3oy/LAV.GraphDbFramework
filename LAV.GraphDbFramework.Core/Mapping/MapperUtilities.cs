@@ -21,7 +21,7 @@ public static class MapperUtilities
 		{
 			mapFromRecordMethod = mapperType!.GetMethod("MapFromRecord", BindingFlags.Public | BindingFlags.Static,
 				null,
-				[typeof(IRecord)],
+				[typeof(IGraphDbRecord)],
 				null);
 
 			return mapFromRecordMethod != null;
@@ -31,14 +31,14 @@ public static class MapperUtilities
 		return false;
 	}
 
-	public static Func<IRecord, T> CreateMapperDelegate<T>() where T : class, new()
+	public static Func<IGraphDbRecord, T> CreateMapperDelegate<T>() where T : class, new()
 	{
 		var type = typeof(T);
 
 		// Пытаемся использовать сгенерированный маппер
 		if (TryGetGeneratedMapper(type, out var mapFromRecordMethod) && mapFromRecordMethod != null)
 		{
-			return (Func<IRecord, T>)Delegate.CreateDelegate(typeof(Func<IRecord, T>), mapFromRecordMethod);
+			return (Func<IGraphDbRecord, T>)Delegate.CreateDelegate(typeof(Func<IGraphDbRecord, T>), mapFromRecordMethod);
 		}
 
 		// Используем MapperCache как резервный вариант

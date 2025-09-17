@@ -9,57 +9,84 @@ using System.Collections.Concurrent;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-public sealed class MemgraphClient : BaseGraphDbClient
+public sealed class MemgraphClient 
+	: BaseGraphDbClient<MemgraphOptions, MemgraphQueryRunner, MemgraphRecord, MemgraphUnitOfWork, MemgraphUnitOfWorkFactory>
 {
-    private readonly IDriver _driver;
+	private readonly IServiceProvider _provider;
+	private readonly IDriver _driver;
 
-	private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
+	//private readonly MemgraphUnitOfWorkFactory _unitOfWorkFactory;
     private readonly ConcurrentBag<IAsyncSession> _sessions = [];
-    private bool _disposed;
 
-	public MemgraphClient(string host, string username, string password, ILogger<MemgraphClient> logger) : base(logger)
+    public MemgraphClient(IServiceProvider provider, IOptionsMonitor<MemgraphOptions> monitor, ILoggerFactory loggerFactory)
+        : base(monitor, loggerFactory.CreateLogger<MemgraphClient>())
     {
-        _driver = GraphDatabase.Driver(host, AuthTokens.Basic(username, password),
-            o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
-
-        _unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, Logger);
+        _provider = provider;
+		_driver = GraphDatabase.Driver(
+            Options.Host, 
+            AuthTokens.Basic(Options.Username, Options.Password), 
+            o =>
+            {
+                o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2);
+                o.WithConnectionTimeout(Options.ConnectionTimeout);
+				o.WithMaxConnectionPoolSize(Options.MaxConnectionPoolSize);
+                o.WithConnectionAcquisitionTimeout(Options.ConnectionAcquisitionTimeout);
+                o.WithEncryptionLevel(Options.UseEncryption ? EncryptionLevel.Encrypted : EncryptionLevel.None);
+			});
     }
 
-    public override IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
+	//public MemgraphClient(string host, string username, string password, ILoggerFactory loggerFactory) 
+	//       : base(loggerFactory.CreateLogger<MemgraphClient>())
+	//   {
+	//	_driver = GraphDatabase.Driver(host, AuthTokens.Basic(username, password),
+	//           o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
 
-    public override async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+	//       //_unitOfWorkFactory = new MemgraphUnitOfWorkFactory(_driver, loggerFactory.CreateLogger<MemgraphClient>());
+	//   }
+
+	//public override IGraphDbUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
+
+    public override async ValueTask<T> ExecuteReadAsync<T>(Func<MemgraphQueryRunner, ValueTask<T>> operation)
     {
-        var session = _driver.AsyncSession();
-        _sessions.Add(session);
+		using var session = _driver.AsyncSession();
+		return await session.ExecuteReadAsync(async tx =>
+			await operation(new MemgraphQueryRunner(tx, Logger)));
 
-        try
-        {
-            return await session.ExecuteReadAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, Logger)));
-        }
-        finally
-        {
-            await session.CloseAsync();
-            _sessions.TryTake(out _);
-        }
-    }
+		//var session = _driver.AsyncSession();
+		//_sessions.Add(session);
 
-    public override async ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+		//try
+		//{
+		//    return await session.ExecuteReadAsync(async tx =>
+		//        await operation(new MemgraphQueryRunner(tx, Logger)));
+		//}
+		//finally
+		//{
+		//    await session.CloseAsync();
+		//    _sessions.TryTake(out _);
+		//}
+	}
+
+    public override async ValueTask<T> ExecuteWriteAsync<T>(Func<MemgraphQueryRunner, ValueTask<T>> operation)
     {
-        var session = _driver.AsyncSession();
-        _sessions.Add(session);
+		using var session = _driver.AsyncSession();
+		return await session.ExecuteWriteAsync(async tx =>
+			await operation(new MemgraphQueryRunner(tx, Logger)));
 
-        try
-        {
-            return await session.ExecuteWriteAsync(async tx =>
-                await operation(new MemgraphQueryRunner(tx, Logger)));
-        }
-        finally
-        {
-            await session.CloseAsync();
-            _sessions.TryTake(out _);
-        }
-    }
+		//var session = _driver.AsyncSession();
+		//_sessions.Add(session);
+
+		//try
+		//{
+		//    return await session.ExecuteWriteAsync(async tx =>
+		//        await operation(new MemgraphQueryRunner(tx, Logger)));
+		//}
+		//finally
+		//{
+		//    await session.CloseAsync();
+		//    _sessions.TryTake(out _);
+		//}
+	}
 
     protected override async ValueTask InternalDisposeAsync()
     {

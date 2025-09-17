@@ -9,8 +9,8 @@ namespace LAV.GraphDbFramework.Core;
 
 public interface IGraphDbClient : IAsyncDisposable
 {
-    ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation);
-    ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation);
-    ValueTask<IGraphUnitOfWork> BeginUnitOfWorkAsync();
-    IGraphUnitOfWorkFactory UnitOfWorkFactory { get; }
+    ValueTask<T> ExecuteReadAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation);
+    ValueTask<T> ExecuteWriteAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation);
+    ValueTask<IGraphDbUnitOfWork> BeginUnitOfWorkAsync();
+    IGraphDbUnitOfWorkFactory UnitOfWorkFactory { get; }
 }

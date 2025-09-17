@@ -8,7 +8,8 @@ using Microsoft.Extensions.Logging;
 
 namespace LAV.GraphDbFramework.Core.UnitOfWork;
 
-public abstract class BaseGraphUnitOfWork : IGraphUnitOfWork
+public abstract class BaseGraphDbUnitOfWork<TRecord> : IGraphDbUnitOfWork<TRecord>
+	where TRecord : IGraphDbRecord
 {
 	private bool _disposed;
 	private bool _committed;
@@ -18,21 +19,18 @@ public abstract class BaseGraphUnitOfWork : IGraphUnitOfWork
 	public bool IsDisposed => _disposed;
 	public bool IsCommitted => _committed;
 
-	protected BaseGraphUnitOfWork(ILogger logger)
+	protected BaseGraphDbUnitOfWork(ILogger logger)
 	{
 		Logger = logger;
 	}
 
-	protected void ThrowIfDisposed([CallerMemberName] string memberName = nameof(BaseGraphUnitOfWork))
-	{
-		if (!_disposed)
-			return;
-
-		throw new ObjectDisposedException(memberName);
-	}
-
 	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
-	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<IRecord, T>? mapper);
+	//public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<IRecord, T> mapper)
+	//{
+	//	return await InternalRunAsync<T>(query, parameters, (record) => mapper!(record));
+	//}
+
+	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TRecord, T> mapper);
 
 	public abstract ValueTask CommitAsync();
 	public abstract ValueTask RollbackAsync();
@@ -62,4 +60,6 @@ public abstract class BaseGraphUnitOfWork : IGraphUnitOfWork
 	protected virtual ValueTask InternalDisposeAsync() => ValueTask.CompletedTask;
 
 	protected void MarkCommitted() => _committed = true;
+
+	
 }

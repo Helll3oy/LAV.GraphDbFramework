@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Neo4j.UnitOfWork;
 
-public sealed class Neo4jUnitOfWork : BaseGraphUnitOfWork
+public sealed class Neo4jUnitOfWork : BaseGraphDbUnitOfWork
 {
     private readonly IAsyncSession _session;
     private readonly IAsyncTransaction _transaction;

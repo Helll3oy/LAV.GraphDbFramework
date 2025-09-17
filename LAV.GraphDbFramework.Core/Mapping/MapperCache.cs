@@ -15,8 +15,8 @@ namespace LAV.GraphDbFramework.Core.Mapping;
 
 public static class MapperCache<T>
 {
-    private static readonly FrozenDictionary<string, Action<T, IRecord>> PropertySetters;
-    private static readonly Func<IRecord, T> MapperFunc;
+    private static readonly FrozenDictionary<string, Action<T, IGraphDbRecord>> PropertySetters;
+    private static readonly Func<IGraphDbRecord, T> MapperFunc;
     //private static readonly ObjectPool<T> ObjectPool;// = new DefaultObjectPool<T>(new DefaultPooledObjectPolicy(), 1024);
 
 	static MapperCache()
@@ -30,13 +30,13 @@ public static class MapperCache<T>
 			var mapMethod = generatedMapperType.GetMethod("MapFromRecord",
 				BindingFlags.Public | BindingFlags.Static,
 				null,
-				new[] { typeof(IRecord) },
+				new[] { typeof(IGraphDbRecord) },
 				null);
 
 			if (mapMethod != null)
 			{
 				// Используем сгенерированный маппер
-				MapperFunc = (Func<IRecord, T>)Delegate.CreateDelegate(typeof(Func<IRecord, T>), mapMethod);
+				MapperFunc = (Func<IGraphDbRecord, T>)Delegate.CreateDelegate(typeof(Func<IGraphDbRecord, T>), mapMethod);
 
 				// Для обратного маппинга также пытаемся использовать сгенерированный метод
 				var mapToPropertiesMethod = generatedMapperType.GetMethod("MapToProperties",
@@ -48,7 +48,7 @@ public static class MapperCache<T>
 				if (mapToPropertiesMethod != null)
 				{
 					// Настройка PropertySetters для обратной совместимости
-					var genSetters = new Dictionary<string, Action<T, IRecord>>();
+					var genSetters = new Dictionary<string, Action<T, IGraphDbRecord>>();
 					var genProperties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
 					foreach (var property in genProperties)
@@ -58,7 +58,7 @@ public static class MapperCache<T>
 							genSetters[property.Name] = (obj, record) =>
 							{
 								var propertyType = property.PropertyType;
-								var tryGetMethod = typeof(IRecord).GetMethod("TryGet")?
+								var tryGetMethod = typeof(IGraphDbRecord).GetMethod("TryGet")?
 									.MakeGenericMethod(propertyType);
 
 								if (tryGetMethod != null)
@@ -89,7 +89,7 @@ public static class MapperCache<T>
 		var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
 		// Создаем скомпилированное выражение для быстрого маппинга
-		var recordParam = Expression.Parameter(typeof(IRecord), "record");
+		var recordParam = Expression.Parameter(typeof(IGraphDbRecord), "record");
 		var variable = Expression.Variable(type, "obj");
 		var expressions = new List<Expression>();
 
@@ -102,7 +102,7 @@ public static class MapperCache<T>
 			if (property.CanWrite)
 			{
 				var propertyType = property.PropertyType;
-				var tryGetMethod = typeof(IRecord).GetMethod("TryGet")?
+				var tryGetMethod = typeof(IGraphDbRecord).GetMethod("TryGet")?
 					.MakeGenericMethod(propertyType);
 
 				if (tryGetMethod != null)
@@ -131,10 +131,10 @@ public static class MapperCache<T>
 		expressions.Add(variable);
 
 		var block = Expression.Block(new[] { variable }, expressions);
-		MapperFunc = Expression.Lambda<Func<IRecord, T>>(block, recordParam).Compile();
+		MapperFunc = Expression.Lambda<Func<IGraphDbRecord, T>>(block, recordParam).Compile();
 
 		// Настройка PropertySetters для обратной совместимости
-		var setters = new Dictionary<string, Action<T, IRecord>>();
+		var setters = new Dictionary<string, Action<T, IGraphDbRecord>>();
 		foreach (var property in properties)
 		{
 			if (property.CanWrite)
@@ -142,7 +142,7 @@ public static class MapperCache<T>
 				setters[property.Name] = (obj, record) =>
 				{
 					var propertyType = property.PropertyType;
-					var tryGetMethod = typeof(IRecord).GetMethod("TryGet")?
+					var tryGetMethod = typeof(IGraphDbRecord).GetMethod("TryGet")?
 						.MakeGenericMethod(propertyType);
 
 					if (tryGetMethod != null)
@@ -165,7 +165,7 @@ public static class MapperCache<T>
 		//ObjectPool = new DefaultObjectPool<T>(objectPolicy, 1024);
 	}
 
-    public static T MapFromRecord(IRecord record) => MapperFunc(record);
+    public static T MapFromRecord(IGraphDbRecord record) => MapperFunc(record);
 
 	//public static T GetObject() => ObjectPool.Get();
 

@@ -11,27 +11,18 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
 
-public class MemgraphUnitOfWorkFactory : IGraphUnitOfWorkFactory
+public class MemgraphUnitOfWorkFactory : BaseGraphDbUnitOfWorkFactory<MemgraphUnitOfWork>
 {
     private readonly IDriver _driver;
-	private readonly ILoggerFactory _loggerFactory;
 
-	private readonly ILogger<MemgraphUnitOfWork> _logger;
-
-    public MemgraphUnitOfWorkFactory(IDriver driver, ILogger<MemgraphUnitOfWorkFactory> logger)
+    public MemgraphUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory) 
+        : base(loggerFactory.CreateLogger<MemgraphUnitOfWork>())
     {
         _driver = driver;
-        //_loggerFactory = loggerFactory;
-        _logger = logger;
     }
 
-    public IGraphUnitOfWork Create()
+    public override async ValueTask<MemgraphUnitOfWork> CreateAsync()
     {
-        return new MemgraphUnitOfWork(_driver, _logger);
-    }
-
-    public async ValueTask<IGraphUnitOfWork> CreateAsync()
-    {
-        return await Task.FromResult(Create());
+        return await ValueTask.FromResult(new MemgraphUnitOfWork(_driver, Logger));
     }
 }

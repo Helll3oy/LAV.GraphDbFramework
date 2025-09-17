@@ -9,7 +9,7 @@ using LAV.GraphDbFramework.Core.Extensions;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-internal sealed class MemgraphRecord : Core.IRecord
+public sealed class MemgraphRecord : Core.IGraphDbRecord
 {
 	private readonly IRecord _record;
 	private readonly Dictionary<string, object>? _properties;

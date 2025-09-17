@@ -14,7 +14,7 @@ public class UserRepository : BaseGraphRepository, IUserRepository
 	private readonly ObjectPool<User>? _userPool;
 	private readonly ObjectPool<Dictionary<string, object>>? _paramPool;
 
-	public UserRepository(IGraphUnitOfWork unitOfWork) : base(unitOfWork)
+	public UserRepository(IGraphDbUnitOfWork unitOfWork) : base(unitOfWork)
 	{
 		_userPool = null;
 		_paramPool = null;

@@ -3,7 +3,8 @@ using Microsoft.Extensions.Logging;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-public abstract class BaseQueryRunner : IQueryRunner
+public abstract class BaseQueryRunner<TGraphDbRecord> : IGraphDbQueryRunner<TGraphDbRecord>
+	where TGraphDbRecord : IGraphDbRecord
 {
     private bool _disposed;
     private IDisposable? _loggerScope = null;
@@ -45,7 +46,7 @@ public abstract class BaseQueryRunner : IQueryRunner
         GC.SuppressFinalize(this);
     }
 
-    public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
 
-    public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<IRecord, T>? mapper);
+    public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TGraphDbRecord, T> mapper);
+	public abstract ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
 }

@@ -14,11 +14,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LAV.GraphDbFramework.Neo4j;
+using LAV.GraphDbFramework.Memgraph;
 
 namespace LAV.GraphDbFramework.Client;
 
 public static class DependencyInjectionExtensions
 {
+	private static string[] _graphDbTypes = ["Neo4j", "Memgraph"];
+
 	private static IServiceCollection AddDefaults(IServiceCollection services)
 	{
 		services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
@@ -40,16 +44,20 @@ public static class DependencyInjectionExtensions
 		services.AddTransient<NodeSpecification>();
 		services.AddTransient<RelationshipSpecification>();
 
+		
+
 		services.AddSingleton<IGraphDbClient>(provider =>
 		{
-			var options = provider.GetRequiredService<IOptions<GraphDbOptions>>().Value;
-			var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+			var clientFactory = provider.GetRequiredService<IGraphDbClientFactory>();
+			return clientFactory.Create();
 
-			return GraphDbFactory.CreateClient(options, loggerFactory);
+			//var options = provider.GetRequiredService<IOptions<GraphDbOptions>>().Value;
+			//var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+			//return GraphDbClientFactory.CreateClient(options, loggerFactory);
 		});
 
 		// Регистрируем фабрику Unit of Work
-		services.AddScoped<IGraphUnitOfWorkFactory>(provider =>
+		services.AddScoped<IGraphDbUnitOfWorkFactory>(provider =>
 		{
 			var client = provider.GetRequiredService<IGraphDbClient>();
 			return client.UnitOfWorkFactory;
@@ -73,6 +81,7 @@ public static class DependencyInjectionExtensions
 		return services;
 	}
 
+
 	public static IServiceCollection AddGraphDb(this IServiceCollection services,
         IConfiguration configuration, string sectionName = "GraphDb")
     {
@@ -85,6 +94,34 @@ public static class DependencyInjectionExtensions
 		Action<GraphDbOptions> configureOptions)
 	{
 		services.Configure(configureOptions);
+
+		return AddDefaults(services);
+	}
+
+	public static IServiceCollection AddMemgraphGraphDbClient(this IServiceCollection services,
+		IConfiguration configuration, string sectionName = "Memgraph")
+	{
+		services.AddOptions<MemgraphOptions>()
+			.Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
+			.ValidateOnStart();
+		
+		services.AddSingleton<IGraphDbClient, MemgraphClient>();
+
+		//services.AddTransient<IGraphDbQueryRunner, MemgraphQueryRunner>();
+
+		//services.Configure<MemgraphOptions>(options => configuration.GetSection(sectionName).Bind(options));
+
+		return AddDefaults(services);
+	}
+
+	public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
+		IConfiguration configuration, string sectionName = "Neo4j")
+	{
+		services.AddOptions<Neo4jOptions>()
+			.Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
+			.ValidateOnStart();
+
+		services.AddSingleton<Neo4jClient>();
 
 		return AddDefaults(services);
 	}

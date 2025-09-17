@@ -2,6 +2,7 @@
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using LAV.GraphDbFramework.Memgraph.UnitOfWork;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using System;
 using System.Collections.Concurrent;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Neo4j;
 
-public sealed class Neo4jClient : IGraphDbClient
+public sealed class Neo4jClient : BaseGraphDbClient<Neo4jOptions>
 {
     private readonly IDriver _driver;
     private readonly ILogger<Neo4jClient> _logger;
@@ -21,7 +22,24 @@ public sealed class Neo4jClient : IGraphDbClient
     private readonly ConcurrentBag<IAsyncSession> _sessions = [];
     private bool _disposed;
 
-    public Neo4jClient(string uri, string username, string password, ILoggerFactory loggerFactory)
+
+	public Neo4jClient(IOptionsMonitor<Neo4jOptions> monitor, ILoggerFactory loggerFactory)
+		: base(monitor, loggerFactory.CreateLogger<Neo4jClient>())
+	{
+		_driver = GraphDatabase.Driver(
+			Options.Host,
+			AuthTokens.Basic(Options.Username, Options.Password),
+			o =>
+			{
+				o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2);
+				o.WithConnectionTimeout(Options.ConnectionTimeout);
+				o.WithMaxConnectionPoolSize(Options.MaxConnectionPoolSize);
+				o.WithConnectionAcquisitionTimeout(Options.ConnectionAcquisitionTimeout);
+				o.WithEncryptionLevel(Options.UseEncryption ? EncryptionLevel.Encrypted : EncryptionLevel.None);
+			});
+	}
+
+	public Neo4jClient(string uri, string username, string password, ILoggerFactory loggerFactory)
     {
         _driver = GraphDatabase.Driver(uri, AuthTokens.Basic(username, password),
             o => o.WithMaxConnectionPoolSize(Environment.ProcessorCount * 2));
@@ -32,7 +50,7 @@ public sealed class Neo4jClient : IGraphDbClient
 
     public IGraphUnitOfWorkFactory UnitOfWorkFactory => _unitOfWorkFactory;
 
-    public async ValueTask<T> ExecuteReadAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    public async ValueTask<T> ExecuteReadAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation)
     {
         var session = _driver.AsyncSession();
         _sessions.Add(session);
@@ -49,7 +67,7 @@ public sealed class Neo4jClient : IGraphDbClient
         }
     }
 
-    public async ValueTask<T> ExecuteWriteAsync<T>(Func<IQueryRunner, ValueTask<T>> operation)
+    public async ValueTask<T> ExecuteWriteAsync<T>(Func<IGraphDbQueryRunner, ValueTask<T>> operation)
     {
         var session = _driver.AsyncSession();
         _sessions.Add(session);
@@ -66,7 +84,7 @@ public sealed class Neo4jClient : IGraphDbClient
         }
     }
 
-    public async ValueTask<IGraphUnitOfWork> BeginUnitOfWorkAsync()
+    public async ValueTask<IGraphDbUnitOfWork> BeginUnitOfWorkAsync()
     {
         return await _unitOfWorkFactory.CreateAsync();
     }

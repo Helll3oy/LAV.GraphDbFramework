@@ -6,7 +6,13 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core.UnitOfWork;
 
-public interface IGraphUnitOfWork : IAsyncDisposable, IQueryRunner
+public interface IGraphDbUnitOfWork : IGraphDbUnitOfWork<IGraphDbRecord>
+{
+
+}
+
+public interface IGraphDbUnitOfWork<TGraphDbRecord> : IGraphDbQueryRunner<TGraphDbRecord>
+    where TGraphDbRecord : IGraphDbRecord
 {
     ValueTask CommitAsync();
     ValueTask RollbackAsync();
