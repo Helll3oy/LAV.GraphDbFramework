@@ -1,6 +1,8 @@
 ﻿using LAV.GraphDbFramework.Core;
+using LAV.GraphDbFramework.Core.Exceptions;
 using LAV.GraphDbFramework.Core.Extensions;
 using LAV.GraphDbFramework.Core.Mapping;
+using LAV.GraphDbFramework.Core.RetryPolicies;
 using Microsoft.Extensions.Logging;
 using Neo4j.Driver;
 using System;
@@ -29,21 +31,29 @@ public sealed class MemgraphQueryRunner : BaseGraphDbQueryRunner<MemgraphRecord>
 	{
 		return await RunAsync(query, parameters, record =>
 		{
-			// Используем кэшированный маппер, если доступен
-			if (MapperCache.TryGetValue(typeof(T), out var mapper))
-				return (T)mapper(record);
-
-			// Пытаемся найти сгенерированный маппер
-			var generatedMapperType = typeof(T).Assembly.GetType($"{typeof(T).Namespace}.{typeof(T).Name}Mapper");
-			if (generatedMapperType?.GetMethod("MapFromRecord", BindingFlags.Public | BindingFlags.Static) is MethodInfo method)
+			try
 			{
-				var mapperFunc = (Func<Core.IGraphDbRecord, T>)Delegate.CreateDelegate(typeof(Func<MemgraphRecord, T>), method);
-				MapperCache[typeof(T)] = record => mapperFunc(record)!;
-				return mapperFunc(record);
-			}
+				// Используем кэшированный маппер, если доступен
+				if (MapperCache.TryGetValue(typeof(T), out var mapper))
+					return (T)mapper(record);
 
-			// Используем общий кэш мапперов
-			return MapperCache<T>.MapFromRecord(record);
+				// Пытаемся найти сгенерированный маппер
+				var generatedMapperType = typeof(T).Assembly.GetType($"{typeof(T).Namespace}.{typeof(T).Name}Mapper");
+				if (generatedMapperType?.GetMethod("MapFromRecord", BindingFlags.Public | BindingFlags.Static) is MethodInfo method)
+				{
+					var mapperFunc = (Func<MemgraphRecord, T>)Delegate.CreateDelegate(typeof(Func<MemgraphRecord, T>), method);
+					MapperCache[typeof(T)] = record => mapperFunc(record)!;
+					return mapperFunc(record);
+				}
+
+				// Используем общий кэш мапперов
+				return MapperCache<T>.MapFromRecord(record);
+			}
+			catch (Exception ex)
+			{
+				throw new GraphDbMappingException($"Failed to map record to type {typeof(T).Name}",
+					typeof(MemgraphRecord), typeof(T), ex);
+			}
 		});
 	}
 
@@ -51,51 +61,62 @@ public sealed class MemgraphQueryRunner : BaseGraphDbQueryRunner<MemgraphRecord>
 	{
 		using var activity = DiagnosticsConfig.ActivitySource.StartActivity("MemgraphQuery");
 		activity?.SetTag("db.query", query);
+		activity?.SetTag("db.system", "memgraph");
 
 		var stopwatch = Stopwatch.StartNew();
 
 		try
 		{
-			IDictionary<string, object>? queryParams = null;
-
-			if (parameters is IDictionary<string, object> dictParams)
+			return await RetryPolicy.ExecuteAsync(async ct =>
 			{
-				queryParams = dictParams;
-			}
-			else if (parameters != null)
-			{
-				// Конвертируем анонимный объект в словарь с использованием пула
-				using var pooledDict = new PooledDictionary();
-				var properties = pooledDict.Dictionary;
+				IDictionary<string, object>? queryParams = null;
 
-				foreach (var prop in parameters.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+				if (parameters is IDictionary<string, object> dictParams)
 				{
-					var value = prop.GetValue(parameters);
-					if (value != null) properties[prop.Name] = value;
+					queryParams = dictParams;
+				}
+				else if (parameters != null)
+				{
+					// Конвертируем анонимный объект в словарь с использованием пула
+					using var pooledDict = new PooledDictionary();
+					var properties = pooledDict.Dictionary;
+
+					foreach (var prop in parameters.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+					{
+						var value = prop.GetValue(parameters);
+						if (value != null) properties[prop.Name] = value;
+					}
+
+					queryParams = properties;
 				}
 
-				queryParams = properties;
-			}
+				var result = await _runner!.RunAsync(query, queryParams);
+				var records = await result.ToListAsync();
 
-			var result = await _runner!.RunAsync(query, queryParams);
-			var records = await result.ToListAsync();
+				var results = new List<T>(records.Count);
+				foreach (var record in records)
+				{
+					results.Add(mapper!(new MemgraphRecord(record)));
+				}
 
-			activity?.SetTag("db.duration", stopwatch.Elapsed);
-
-			Logger.LogDebug("Memgraph query executed in {ElapsedMs}ms: {Query}", stopwatch.Elapsed, query);
-
-			var results = new List<T>(records.Count);
-			foreach (var record in records)
-			{
-				results.Add(mapper!(new MemgraphRecord(record)));
-			}
-
-			return results;
+				return results;
+			});
 		}
-		catch (Exception ex)
+		catch (Exception ex) when (ex is not GraphDbException)
 		{
 			Logger.LogError(ex, "Error executing Memgraph query: {Query}", query);
-			throw;
+			activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
+			throw new GraphDbQueryException(query, parameters ?? new object(), ex);
+		}
+		finally
+		{
+			stopwatch.Stop();
+
+			activity?.SetTag("db.duration", stopwatch.Elapsed);
+			activity?.SetTag("db.operation", "query");
+
+			Logger.LogDebug("Memgraph query executed in {ElapsedMs}ms: {Query}", stopwatch.Elapsed, query);
 		}
 	}
 }

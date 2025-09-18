@@ -96,7 +96,7 @@ public static class DependencyInjectionExtensions
     }
 
     public static IServiceCollection AddMemgraphGraphDbClient(this IServiceCollection services,
-        IConfiguration configuration, string sectionName = "Memgraph")
+        IConfiguration configuration, string sectionName = "GraphDb:Memgraph")
     {
         services.AddOptions<MemgraphOptions>()
             .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
@@ -112,7 +112,7 @@ public static class DependencyInjectionExtensions
     }
 
     public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
-        IConfiguration configuration, string sectionName = "Neo4j")
+        IConfiguration configuration, string sectionName = "GraphDb:Neo4j")
     {
         services.AddOptions<Neo4jOptions>()
             .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
