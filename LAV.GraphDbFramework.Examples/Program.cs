@@ -61,8 +61,8 @@ app.MapGet("/users/{id}", async (string id, IUserRepository userRepository) =>
 	}
 	catch (Exception ex)
 	{
-		throw;
-        //throw new GraphDbException($"User with id {id} not found", "NOT_FOUND_ERROR");
+		//throw;
+        throw new GraphDbException($"User with id {id} not found", "NOT_FOUND_ERROR");
     }
 });
 
