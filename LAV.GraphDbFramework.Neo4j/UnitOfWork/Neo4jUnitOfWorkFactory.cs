@@ -9,38 +9,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LAV.GraphDbFramework.Memgraph.UnitOfWork;
+namespace LAV.GraphDbFramework.Neo4j.UnitOfWork;
 
-public class Neo4jUnitOfWorkFactory : PooledObjectPolicy<IGraphDbUnitOfWork>, IGraphUnitOfWorkFactory
+public class Neo4jUnitOfWorkFactory : BaseGraphDbUnitOfWorkFactory<Neo4jUnitOfWork>
 {
     private readonly IDriver _driver;
-    private readonly ILogger<Neo4jUnitOfWorkFactory> _logger;
-    private readonly ILoggerFactory _loggerFactory;
 
-	public Neo4jUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
+    public Neo4jUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
+        : base(loggerFactory.CreateLogger<Neo4jUnitOfWork>())
     {
         _driver = driver;
-        _loggerFactory = loggerFactory;
-		_logger = loggerFactory.CreateLogger<Neo4jUnitOfWorkFactory>();
     }
 
-    public override IGraphDbUnitOfWork Create()
+    public override async ValueTask<Neo4jUnitOfWork> CreateAsync()
     {
-        return new Neo4jUnitOfWork(_driver, _loggerFactory);
-    }
-
-    public async Task<IGraphDbUnitOfWork> CreateAsync()
-    {
-        return await Task.FromResult(Create());
-    }
-
-    public override bool Return(IGraphDbUnitOfWork obj)
-    {
-        if (!obj.IsDisposed)
-        {
-            Task.WaitAll(Task.Run(async () => await obj.DisposeAsync()));
-        }
-
-        return true;
+        return await ValueTask.FromResult(new Neo4jUnitOfWork(_driver, Logger));
     }
 }

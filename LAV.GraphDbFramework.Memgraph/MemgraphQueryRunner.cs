@@ -14,10 +14,10 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-internal sealed class MemgraphQueryRunner : BaseQueryRunner<MemgraphRecord>, IGraphDbQueryRunner
+public sealed class MemgraphQueryRunner : BaseGraphDbQueryRunner<MemgraphRecord>
 {
 	private readonly IAsyncQueryRunner _runner;
-	private static readonly ConcurrentDictionary<Type, Func<Core.IGraphDbRecord, object>> MapperCache = [];
+	private static readonly ConcurrentDictionary<Type, Func<MemgraphRecord, object>> MapperCache = [];
 
 	public MemgraphQueryRunner(IAsyncQueryRunner runner, Microsoft.Extensions.Logging.ILogger logger) : base(logger)
 	{
@@ -37,7 +37,7 @@ internal sealed class MemgraphQueryRunner : BaseQueryRunner<MemgraphRecord>, IGr
 			var generatedMapperType = typeof(T).Assembly.GetType($"{typeof(T).Namespace}.{typeof(T).Name}Mapper");
 			if (generatedMapperType?.GetMethod("MapFromRecord", BindingFlags.Public | BindingFlags.Static) is MethodInfo method)
 			{
-				var mapperFunc = (Func<Core.IGraphDbRecord, T>)Delegate.CreateDelegate(typeof(Func<Core.IGraphDbRecord, T>), method);
+				var mapperFunc = (Func<Core.IGraphDbRecord, T>)Delegate.CreateDelegate(typeof(Func<MemgraphRecord, T>), method);
 				MapperCache[typeof(T)] = record => mapperFunc(record)!;
 				return mapperFunc(record);
 			}
@@ -47,7 +47,7 @@ internal sealed class MemgraphQueryRunner : BaseQueryRunner<MemgraphRecord>, IGr
 		});
 	}
 
-	public async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<Core.IGraphDbRecord, T>? mapper)
+	public override async ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<MemgraphRecord, T> mapper)
 	{
 		using var activity = DiagnosticsConfig.ActivitySource.StartActivity("MemgraphQuery");
 		activity?.SetTag("db.query", query);
@@ -97,10 +97,5 @@ internal sealed class MemgraphQueryRunner : BaseQueryRunner<MemgraphRecord>, IGr
 			Logger.LogError(ex, "Error executing Memgraph query: {Query}", query);
 			throw;
 		}
-	}
-
-	public override ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<MemgraphRecord, T> mapper)
-	{
-		throw new NotImplementedException();
 	}
 }

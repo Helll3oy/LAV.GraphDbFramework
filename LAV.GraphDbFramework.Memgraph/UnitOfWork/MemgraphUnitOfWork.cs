@@ -1,4 +1,5 @@
-﻿using LAV.GraphDbFramework.Core.Mapping;
+﻿using LAV.GraphDbFramework.Core;
+using LAV.GraphDbFramework.Core.Mapping;
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
@@ -31,7 +32,8 @@ public sealed class MemgraphUnitOfWork : BaseGraphDbUnitOfWork<MemgraphRecord>
     {
         ThrowIfDisposed();
 
-		var result = await(await Transaction).RunAsync(query, parameters);
+        var transaction = await Transaction;
+        var result = await transaction.RunAsync(query, parameters);
         var records = await result.ToListAsync();
 
 		var results = new List<T>(records.Count);
@@ -47,7 +49,8 @@ public sealed class MemgraphUnitOfWork : BaseGraphDbUnitOfWork<MemgraphRecord>
 	{
 		ThrowIfDisposed();
 
-		var result = await(await Transaction).RunAsync(query, parameters);
+        var transaction = await Transaction;
+        var result = await transaction.RunAsync(query, parameters);
 		var records = await result.ToListAsync();
 
 		var results = new List<T>(records.Count);
@@ -59,11 +62,12 @@ public sealed class MemgraphUnitOfWork : BaseGraphDbUnitOfWork<MemgraphRecord>
 		return results;
 	}
 
-	public override async ValueTask CommitAsync()
+    public override async ValueTask CommitAsync()
     {
         ThrowIfDisposed();
 
-		await (await Transaction).CommitAsync();
+        var transaction = await Transaction;
+        await transaction.CommitAsync();
         MarkCommitted();
         Logger.LogDebug("Memgraph UnitOfWork committed");
     }
@@ -72,21 +76,15 @@ public sealed class MemgraphUnitOfWork : BaseGraphDbUnitOfWork<MemgraphRecord>
     {
         ThrowIfDisposed();
 
-		await (await Transaction).RollbackAsync();
+        var transaction = await Transaction;
+        await transaction.RollbackAsync();
         Logger.LogDebug("Memgraph UnitOfWork rolled back");
     }
 
     protected override async ValueTask InternalDisposeAsync()
     {
-		await (await Transaction).DisposeAsync();
+        var transaction = await Transaction;
+        await transaction.DisposeAsync();
         await _session.DisposeAsync();
     }
-
-	private void ThrowIfDisposed()
-	{
-		if (!IsDisposed)
-			return;
-
-		throw new ObjectDisposedException(nameof(MemgraphUnitOfWork));
-	}
 }

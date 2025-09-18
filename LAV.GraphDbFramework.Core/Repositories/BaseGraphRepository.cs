@@ -15,13 +15,14 @@ public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposab
 	protected IGraphDbUnitOfWork UnitOfWork { get; private set; }
 	protected bool IsExternalUnitOfWork { get; private set; }
 
-	protected BaseGraphRepository(/*IGraphDbClient client, */IServiceProvider provider)
+	protected BaseGraphRepository(IGraphDbClient client, IServiceProvider provider)
 	{
-		var uowFactory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
 		// По умолчанию создаем свой UnitOfWork
-		UnitOfWork = uowFactory.CreateAsync();
+		//var uowFactory = provider.GetRequiredService<IGraphDbUnitOfWorkFactory>();
+		//UnitOfWork = uowFactory.CreateAsync();
 
-			//client.BeginUnitOfWorkAsync().GetAwaiter().GetResult();
+
+		UnitOfWork = client.BeginUnitOfWorkAsync().GetAwaiter().GetResult();
 		IsExternalUnitOfWork = false;
 	}
 
@@ -34,7 +35,7 @@ public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposab
 
 	public async ValueTask SaveChangesAsync()
 	{
-		if (UnitOfWork != null && !UnitOfWork.IsCommitted && !UnitOfWork.IsDisposed)
+		if (UnitOfWork?.IsCommitted == false && !UnitOfWork.IsDisposed)
 		{
 			await UnitOfWork.CommitAsync();
 		}

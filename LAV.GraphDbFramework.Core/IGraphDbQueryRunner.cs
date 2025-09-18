@@ -1,13 +1,7 @@
 ﻿namespace LAV.GraphDbFramework.Core;
 
-public interface IGraphDbQueryRunner : IGraphDbQueryRunner<IGraphDbRecord>
-{
-
-}
-
-public interface IGraphDbQueryRunner<TGraphDbRecord> : IAsyncDisposable
-    where TGraphDbRecord : IGraphDbRecord
+public interface IGraphDbQueryRunner : IAsyncDisposable
 {
     ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters);
-    ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<TGraphDbRecord, T> mapper);
+    ValueTask<IReadOnlyList<T>> RunAsync<T>(string query, object? parameters, Func<IGraphDbRecord, T> mapper);
 }

@@ -15,7 +15,7 @@ public class MemgraphUnitOfWorkFactory : BaseGraphDbUnitOfWorkFactory<MemgraphUn
 {
     private readonly IDriver _driver;
 
-    public MemgraphUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory) 
+    public MemgraphUnitOfWorkFactory(IDriver driver, ILoggerFactory loggerFactory)
         : base(loggerFactory.CreateLogger<MemgraphUnitOfWork>())
     {
         _driver = driver;

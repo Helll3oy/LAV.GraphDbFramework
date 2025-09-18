@@ -9,15 +9,20 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core.UnitOfWork;
 
-public abstract  class BaseGraphDbUnitOfWorkFactory<T> : IGraphDbUnitOfWorkFactory
-    where T : IGraphDbUnitOfWork
+public abstract class BaseGraphDbUnitOfWorkFactory<TGraphDbUnitOfWork> : IGraphDbUnitOfWorkFactory
+    where TGraphDbUnitOfWork : IGraphDbUnitOfWork
 {
-	protected readonly ILogger<T> Logger;
+    protected readonly ILogger<TGraphDbUnitOfWork> Logger;
 
-	protected BaseGraphDbUnitOfWorkFactory(ILogger<T> logger)
+    protected BaseGraphDbUnitOfWorkFactory(ILogger<TGraphDbUnitOfWork> logger)
     {
         Logger = logger;
     }
 
-    public abstract ValueTask<T> CreateAsync();
+    public abstract ValueTask<TGraphDbUnitOfWork> CreateAsync();
+
+    async ValueTask<IGraphDbUnitOfWork> IGraphDbUnitOfWorkFactory.CreateAsync()
+    {
+        return await CreateAsync();
+    }
 }

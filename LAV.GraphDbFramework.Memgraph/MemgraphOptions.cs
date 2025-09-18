@@ -2,11 +2,9 @@
 
 namespace LAV.GraphDbFramework.Memgraph;
 
-public class MemgraphOptions : BaseGraphDbOptions<MemgraphExtraOptions>
-{
-}
+public class MemgraphOptions : BaseGraphDbOptions<MemgraphExtraOptions>;
 
 public class MemgraphExtraOptions
 {
-	public string? TestOption { get; set; }
+    public string? TestOption { get; set; }
 }
