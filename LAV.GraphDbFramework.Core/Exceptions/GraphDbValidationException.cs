@@ -6,13 +6,20 @@ using System.Threading.Tasks;
 
 namespace LAV.GraphDbFramework.Core.Exceptions;
 
-public class GraphDbValidationException : GraphDbException
+public sealed class GraphDbValidationException : GraphDbException
 {
-	public IReadOnlyList<GraphDbValidationError> ValidationErrors { get; }
+    public IReadOnlyList<GraphDbValidationError> ValidationErrors { get; }
 
-	public GraphDbValidationException(IReadOnlyList<GraphDbValidationError> validationErrors)
-		: base("Validation failed", "VALIDATION_ERROR")
-	{
-		ValidationErrors = validationErrors;
-	}
+    public GraphDbValidationException(IReadOnlyList<GraphDbValidationError> validationErrors)
+        : base("Validation failed", "VALIDATION_ERROR")
+    {
+        ValidationErrors = validationErrors;
+    }
+
+    private GraphDbValidationException(string message, string errorCode, string? operation = null, string? query = null,
+            object? parameters = null, Exception? innerException = null)
+        : base(message, errorCode, operation, query, parameters, innerException)
+    {
+        ValidationErrors = [];
+    }
 }

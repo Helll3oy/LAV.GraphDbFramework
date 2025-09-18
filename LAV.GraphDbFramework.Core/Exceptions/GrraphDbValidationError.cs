@@ -10,10 +10,10 @@ public class GraphDbValidationError
 {
 	public string PropertyName { get; }
 	public string ErrorMessage { get; }
-	public object AttemptedValue { get; }
-	public string ErrorCode { get; }
+	public object? AttemptedValue { get; }
+	public string? ErrorCode { get; }
 
-	public GraphDbValidationError(string propertyName, string errorMessage, object attemptedValue = null, string errorCode = null)
+	public GraphDbValidationError(string propertyName, string errorMessage, object? attemptedValue = null, string? errorCode = null)
 	{
 		PropertyName = propertyName;
 		ErrorMessage = errorMessage;

@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using LAV.GraphDbFramework.Neo4j;
+//using LAV.GraphDbFramework.Neo4j;
 using LAV.GraphDbFramework.Memgraph;
 
 namespace LAV.GraphDbFramework.Client;
@@ -111,17 +111,17 @@ public static class DependencyInjectionExtensions
         return AddDefaults(services);
     }
 
-    public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
-        IConfiguration configuration, string sectionName = "GraphDb:Neo4j")
-    {
-        services.AddOptions<Neo4jOptions>()
-            .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
-            .ValidateOnStart();
+    //public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
+    //    IConfiguration configuration, string sectionName = "GraphDb:Neo4j")
+    //{
+    //    services.AddOptions<Neo4jOptions>()
+    //        .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
+    //        .ValidateOnStart();
 
-        services.AddSingleton<Neo4jClient>();
+    //    services.AddSingleton<Neo4jClient>();
 
-        return AddDefaults(services);
-    }
+    //    return AddDefaults(services);
+    //}
 
     private sealed class ParameterPoolPolicy : IPooledObjectPolicy<Dictionary<string, object>>
     {

@@ -1,12 +1,17 @@
+using LAV.GraphDbFramework.Client;
+using LAV.GraphDbFramework.Core.Configuration;
+using LAV.GraphDbFramework.Core.Exceptions;
 using LAV.GraphDbFramework.Core.Specifications;
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using LAV.GraphDbFramework.Examples.Models;
 using LAV.GraphDbFramework.Examples.Repositories;
 using LAV.GraphDbFramework.Examples.Services;
 using Microsoft.Extensions.ObjectPool;
-using LAV.GraphDbFramework.Client;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Добавляем обработку ошибок
+builder.Services.AddGraphDbErrorHandling(builder.Configuration);
 
 //builder.Services.AddGraphDb(builder.Configuration);
 builder.Services.AddMemgraphGraphDbClient(builder.Configuration);
@@ -31,9 +36,34 @@ builder.Services.AddTransient<QuerySpecification<User>>();
 
 var app = builder.Build();
 
-app.MapGet("/", async (IUserRepository userRepository) =>
-{ 
-	return await userRepository.GetByIdAsync("admin");
+app.UseExceptionHandler();
+
+//// Настройка pipeline
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseDeveloperExceptionPage();
+//}
+//else
+//{
+//    // Используем наш обработчик исключений
+//    //app.UseExceptionHandler();
+
+//    app.UseGraphDbErrorHandling();
+//}
+
+app.MapGet("/users/{id}", async (string id, IUserRepository userRepository) =>
+{
+	try
+	{
+		var user = await userRepository.GetByIdAsync(id);
+
+		return Results.Ok(user);
+	}
+	catch (Exception ex)
+	{
+		throw;
+        //throw new GraphDbException($"User with id {id} not found", "NOT_FOUND_ERROR");
+    }
 });
 
 app.MapPost("/users", async (IUserRepository userRepository) =>
