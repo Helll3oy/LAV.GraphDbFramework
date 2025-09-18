@@ -1,4 +1,5 @@
 ﻿using LAV.GraphDbFramework.Core;
+using LAV.GraphDbFramework.Core.RetryPolicies;
 using Microsoft.Extensions.Logging;
 
 namespace LAV.GraphDbFramework.Core;
@@ -9,14 +10,16 @@ public abstract class BaseGraphDbQueryRunner<TGraphDbRecord> : IGraphDbQueryRunn
     private bool _disposed;
     private IDisposable? _loggerScope = null;
 
-    protected readonly ILogger Logger;
+	protected readonly IGraphDbRetryPolicy RetryPolicy;
+	protected readonly ILogger Logger;
 
     public bool IsDisposed => _disposed;
 
-    protected BaseGraphDbQueryRunner(ILogger logger)
+    protected BaseGraphDbQueryRunner(ILogger logger, IGraphDbRetryPolicy? retryPolicy = null)
     {
         Logger = logger;
-    }
+		RetryPolicy = retryPolicy ?? new NoRetryPolicy();
+	}
 
     protected void BeginLoggerScope<T>(T state) where T : notnull
     {

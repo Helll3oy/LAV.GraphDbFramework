@@ -13,29 +13,30 @@ namespace LAV.GraphDbFramework.Memgraph;
 public sealed class MemgraphRecord : IGraphDbRecord
 {
     private readonly IRecord _record;
-    private readonly Dictionary<string, object>? _properties;
+    private readonly IDictionary<string, object>? _properties;
     private readonly bool _hasProperties;
 
     public MemgraphRecord(IRecord record)
     {
         _record = record;
-        if (_record.Values.Values.FirstOrDefault() is Dictionary<string, object> props)
-        {
-            _hasProperties = true;
-            _properties = props;
-        }
-        else
-        {
-            _hasProperties = false;
-            _properties = null;
-        }
+
+		//if (_record.Values.Values.FirstOrDefault() is IDictionary<string, object> props)
+  //      {
+  //          _hasProperties = true;
+  //          _properties = props;
+  //      }
+  //      else
+  //      {
+  //          _hasProperties = false;
+  //          _properties = null;
+  //      }
     }
 
     public T Get<T>(string key) => _record[key].As<T>();
 
     public bool TryGet<T>(string key, out T? value)
     {
-        if (_hasProperties && _properties!.TryGetValue(key, out object? prop))
+		if (Properties.TryGetValue(key, out object? prop))
         {
             if (prop is ZonedDateTime zonedDateTime)
             {
@@ -62,20 +63,51 @@ public sealed class MemgraphRecord : IGraphDbRecord
         var node = _record[key].As<INode>();
         return new Node(
             node.ElementId,
-            node.Properties.ToDictionary(p => p.Key, p => p.Value),
+            node.Properties.ToDictionary(p => p.Key, p => {
+				var prop = p.Value;
+				if (p.Value is ZonedDateTime zonedDateTime)
+				{
+					return zonedDateTime.UtcDateTime.As<DateTime>();
+				}
+				else if (p.Value is LocalDateTime localDateTime)
+				{
+					return localDateTime.ToDateTime().As<DateTime>();
+				}
+
+				return p.Value.As<object>();
+
+				//return (object)_record[k];
+			}),
             node.Labels.ToList()
         );
     }
-
+    private class test
+    {
+        public string? stringId { get; set; }
+		public int intId { get; set; }
+	}
     public Relationship GetRelationship(string key)
     {
-        var rel = _record[key].As<IRelationship>();
+		var rel = _record[key].As<IRelationship>();
         return new Relationship(
             rel.ElementId,
             GetNode(key + "_start"),
             GetNode(key + "_end"),
             rel.Type,
-            rel.Properties.ToDictionary(p => p.Key, p => p.Value)
+            rel.Properties.ToDictionary(p => p.Key, p => {
+				if (p.Value is ZonedDateTime zonedDateTime)
+				{
+					return zonedDateTime.UtcDateTime.As<DateTime>();
+				}
+				else if (p.Value is LocalDateTime localDateTime)
+				{
+					return localDateTime.ToDateTime().As<DateTime>();
+				}
+
+				return p.Value.As<object>();
+
+				//return (object)_record[k];
+			})
         );
     }
 
@@ -85,5 +117,19 @@ public sealed class MemgraphRecord : IGraphDbRecord
     }
 
     public IReadOnlyDictionary<string, object> Properties =>
-        _record.Keys.ToDictionary(k => k, k => (object)_record[k]);
+        _record.Keys.ToDictionary(k => k, k => {
+            var prop = _record[k];
+			if (prop is ZonedDateTime zonedDateTime)
+			{
+				return zonedDateTime.UtcDateTime.As<DateTime>();
+			}
+			else if (prop is LocalDateTime localDateTime)
+			{
+				return localDateTime.ToDateTime().As<DateTime>();
+			}
+
+			return prop.As<object>();
+
+			//return (object)_record[k];
+        });
 }

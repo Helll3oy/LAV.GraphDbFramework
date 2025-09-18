@@ -165,7 +165,8 @@ public static class MapperCache<T>
         //ObjectPool = new DefaultObjectPool<T>(objectPolicy, 1024);
     }
 
-    public static T MapFromRecord(IGraphDbRecord record) => MapperFunc(record);
+    public static T MapFromRecord(IGraphDbRecord record)
+        => MapperFunc(record);
 
     //public static T GetObject() => ObjectPool.Get();
 

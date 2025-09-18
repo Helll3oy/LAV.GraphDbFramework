@@ -17,12 +17,12 @@ public abstract class BaseGraphRepository : IBaseGraphRepository, IAsyncDisposab
 
 	protected BaseGraphRepository(IGraphDbClient client, IServiceProvider provider)
 	{
-        // По умолчанию создаем свой UnitOfWork
-        //var uowFactory = provider.GetRequiredService<IGraphDbUnitOfWorkFactory>();
-        //UnitOfWork = uowFactory.CreateAsync();
+		// По умолчанию создаем свой UnitOfWork
+		//var uowFactory = provider.GetRequiredService<IGraphDbUnitOfWorkFactory>();
+		//UnitOfWork = uowFactory.CreateAsync();
 
 
-		client.BeginUnitOfWorkAsync().GetAwaiter().GetResult();
+		UnitOfWork = client.BeginUnitOfWorkAsync().GetAwaiter().GetResult();
 		IsExternalUnitOfWork = false;
 	}
 

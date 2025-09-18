@@ -6,6 +6,7 @@ using LAV.GraphDbFramework.Core.Specifications;
 using LAV.GraphDbFramework.Core.UnitOfWork;
 using LAV.GraphDbFramework.Examples.Models;
 using Microsoft.Extensions.ObjectPool;
+using Neo4j.Driver;
 
 namespace LAV.GraphDbFramework.Examples.Repositories;
 
@@ -158,11 +159,35 @@ public class UserRepository : BaseGraphRepository, IUserRepository
 		}
 	}
 
+	public static Dictionary<string, object> MapToProperties(User obj)
+	{
+		var properties = new Dictionary<string, object>();
+		if (obj.Id is not null)
+			properties["id"] = obj.Id;
+		if (obj.Name is not null)
+			properties["name"] = obj.Name;
+		if (obj.Email is not null)
+			properties["email"] = obj.Email;
+		if (obj.Age is not null)
+			properties["age"] = obj.Age;
+		if (obj.CreatedAt != DateTime.MinValue)
+			properties["created_at"] = obj.CreatedAt.Kind == DateTimeKind.Utc ? obj.CreatedAt : obj.CreatedAt.ToUniversalTime();
+		return properties;
+	}
+
 	public async ValueTask<User?> GetByIdAsync(string id)
 	{
 		var results = await UnitOfWork.RunAsync<User>(
 			"MATCH (u:User {id: $id}) RETURN u",
-			new { id });
+			new { id },	 
+			(r) => {
+				//var u = new User();
+				var u = UserMapper.MapFromNode(r, "u");
+
+				//u.Id = r.GetNode("u").Properties["id"].As<string>();
+
+				return u;
+			});
 
 		return results?.FirstOrDefault();
 	}

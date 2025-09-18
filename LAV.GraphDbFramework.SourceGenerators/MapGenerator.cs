@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+//using Minerals.StringCases;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -83,64 +84,73 @@ public class GraphMapGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine($"namespace {namespaceName}");
         sb.AppendLine("{");
-        sb.AppendLine($"    public static partial class {className}Mapper");
+
+		sb.AppendLine($"    public static partial class {className}Mapper");
         sb.AppendLine("    {");
 
-        //// Генерируем статическое FrozenDictionary для быстрого доступа
-        //sb.AppendLine($"        private static readonly FrozenDictionary<string, Action<{className}, IRecord>> PropertySetters = CreatePropertySetters();");
-        //sb.AppendLine();
-        //sb.AppendLine($"        private static FrozenDictionary<string, Action<{className}, IRecord>> CreatePropertySetters()");
-        //sb.AppendLine("        {");
-        //sb.AppendLine("            var setters = new Dictionary<string, Action<User, IRecord>>");
-        //sb.AppendLine("            {");
+		sb.AppendLine($"        public static {className} MapFromNode(IGraphDbRecord record, string nodeAlias)");
+		sb.AppendLine("        {");
+		sb.AppendLine($"           var properties = record.GetNode(nodeAlias).Properties;");
+		sb.AppendLine($"           var obj = new {className}();");
 
-        //foreach (var property in properties)
-        //{
-        //    var propertyName = property.Name;
-        //    var propertyType = property.Type.ToDisplayString();
+		foreach (var property in properties)
+		{
+			var propertyName = property.Name;
+			var mappedPropertyName = propertyName.ToSnakeCase();
+			var propertyType = property.Type.ToDisplayString();
 
-        //    sb.AppendLine($"                [\"{propertyName}\"] = (obj, record) =>");
-        //    sb.AppendLine($"                {{");
-        //    sb.AppendLine($"                    if (record.TryGet<{propertyType}>(\"{propertyName}\", out var value))");
-        //    sb.AppendLine($"                        obj.{propertyName} = value;");
-        //    sb.AppendLine($"                }},");
-        //}
+            sb.AppendLine($"           if (properties.TryGetValue(\"{mappedPropertyName}\", out var {mappedPropertyName}))");
+			sb.AppendLine($"           {{");
+            sb.AppendLine($"               obj.{propertyName} = ({propertyType}){mappedPropertyName};");
+			sb.AppendLine($"           }}");
 
-        //sb.AppendLine("            };");
-        //sb.AppendLine("            return setters.ToFrozenDictionary();");
-        //sb.AppendLine("        }");
-        //sb.AppendLine();
+			//sb.AppendLine($"            if (record.TryGet<{propertyType}>(\"{mappedPropertyName}\", out var {mappedPropertyName}))");
+			//sb.AppendLine($"            {{");
+			//if (propertyType.Equals("System.DateTime"))
+			//{
+			//	sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName}.Kind == DateTimeKind.Utc ? {mappedPropertyName}.ToLocalTime() : {mappedPropertyName};");
+			//}
+			//if (propertyType.Equals("System.DateTime?"))
+			//{
+			//	sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName}.Value.Kind == DateTimeKind.Utc ? {mappedPropertyName}.Value.ToLocalTime() : {mappedPropertyName};");
+			//}
+			//else
+			//{
+			//	sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName};");
+			//}
+			//sb.AppendLine($"            }}");
+		}
 
-        // Метод маппинга
-        sb.AppendLine($"        public static {className} MapFromRecord(IGraphDbRecord record)");
+		sb.AppendLine("            return obj;");
+		sb.AppendLine("        }");
+		sb.AppendLine();
+
+
+		// Метод маппинга
+		sb.AppendLine($"        public static {className} MapFromRecord(IGraphDbRecord record)");
         sb.AppendLine("        {");
-        sb.AppendLine($"           var obj = new {className}();");
-
-		//sb.AppendLine("            foreach (var setter in PropertySetters)");
-		//sb.AppendLine("            {");
-		//sb.AppendLine("                setter.Value(obj, record);");
-		//sb.AppendLine("            }");
+		//sb.AppendLine($"           var properties = record.GetNode(nodeAlias).Properties;");
+		sb.AppendLine($"           var obj = new {className}();");
                                                                                                              
 		foreach (var property in properties)
 		{
 			var propertyName = property.Name;
+			var mappedPropertyName = propertyName.ToSnakeCase();
 			var propertyType = property.Type.ToDisplayString();
 
-			sb.AppendLine($"            if (record.TryGet<{propertyType}>(\"{propertyName}\", out var {propertyName.ToLowerInvariant()}Value))");
+			sb.AppendLine($"            if (record.TryGet<{propertyType}>(\"{mappedPropertyName}\", out var {mappedPropertyName}))");
 			sb.AppendLine($"            {{");
             if (propertyType.Equals("System.DateTime"))
             {
-                var valName = $"{propertyName.ToLowerInvariant()}Value";
-				sb.AppendLine($"                obj.{propertyName} = {valName}.Kind == DateTimeKind.Utc ? {valName}.ToLocalTime() : {valName};");
+				sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName}.Kind == DateTimeKind.Utc ? {mappedPropertyName}.ToLocalTime() : {mappedPropertyName};");
             }
 			if (propertyType.Equals("System.DateTime?"))
 			{
-				var valName = $"{propertyName.ToLowerInvariant()}Value.Value";
-				sb.AppendLine($"                obj.{propertyName} = {valName}.Kind == DateTimeKind.Utc ? {valName}.ToLocalTime() : {valName};");
+				sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName}.Value.Kind == DateTimeKind.Utc ? {mappedPropertyName}.Value.ToLocalTime() : {mappedPropertyName};");
 			}
 			else
             {
-				sb.AppendLine($"                obj.{propertyName} = {propertyName.ToLowerInvariant()}Value;");
+				sb.AppendLine($"                obj.{propertyName} = {mappedPropertyName};");
 			}
             sb.AppendLine($"            }}");
 		}
@@ -157,20 +167,23 @@ public class GraphMapGenerator : IIncrementalGenerator
         foreach (var property in properties)
         {
             var propertyName = property.Name;
+			var mappedPropertyName = propertyName.ToSnakeCase();
 			var propertyType = property.Type.ToDisplayString();
-
-			sb.AppendLine($"            if (obj.{propertyName} is not null)");
+		
             if (propertyType.Equals("System.DateTime"))
             {
-				sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName}.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.ToUniversalTime();");
+				sb.AppendLine($"            if (obj.{propertyName} != DateTime.MinValue)");
+				sb.AppendLine($"                properties[\"{mappedPropertyName}\"] = obj.{propertyName}.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.ToUniversalTime();");
 			}
 			else if (propertyType.Equals("System.DateTime?"))
 			{
-				sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName}.Value.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.Value.ToUniversalTime();");
+				sb.AppendLine($"            if (obj.{propertyName} is not null)");
+				sb.AppendLine($"                properties[\"{mappedPropertyName}\"] = obj.{propertyName}.Value.Kind == DateTimeKind.Utc ? obj.{propertyName} : obj.{propertyName}.Value.ToUniversalTime();");
 			}
 			else
             {
-                sb.AppendLine($"                properties[\"{propertyName}\"] = obj.{propertyName};");
+				sb.AppendLine($"            if (obj.{propertyName} is not null)");
+				sb.AppendLine($"                properties[\"{mappedPropertyName}\"] = obj.{propertyName};");
             }
         }
 
