@@ -15,7 +15,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LAV.GraphDbFramework.Core\LAV.GraphDbFramework.Core.csproj" />
+    <ProjectReference Include="..\LAV.GraphDbFramework.Linq\LAV.GraphDbFramework.Linq.csproj" />
     <ProjectReference Include="..\LAV.GraphDbFramework.Memgraph\LAV.GraphDbFramework.Memgraph.csproj" />
+    <ProjectReference Include="..\LAV.GraphDbFramework.QueryLanguage\LAV.GraphDbFramework.QueryLanguage.csproj" />
   </ItemGroup>
 
 </Project>

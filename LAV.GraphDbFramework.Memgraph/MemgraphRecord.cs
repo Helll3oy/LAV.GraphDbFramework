@@ -81,11 +81,7 @@ public sealed class MemgraphRecord : IGraphDbRecord
             node.Labels.ToList()
         );
     }
-    private class test
-    {
-        public string? stringId { get; set; }
-		public int intId { get; set; }
-	}
+
     public Relationship GetRelationship(string key)
     {
 		var rel = _record[key].As<IRelationship>();

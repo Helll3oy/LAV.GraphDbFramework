@@ -5,6 +5,11 @@ Accept: application/json
 
 ###
 
+GET {{LAV.GraphDbFramewoork.Example_HostAddress}}/users/tests
+Accept: application/json
+
+###
+
 POST {{LAV.GraphDbFramewoork.Example_HostAddress}}/users
 Accept: application/json
 

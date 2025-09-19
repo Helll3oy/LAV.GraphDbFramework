@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LAV.GraphDbFramework.Core.Transactions;
 
-internal class GraphDbDistributedTransactionManager : IAsyncDisposable
+public class GraphDbDistributedTransactionManager : IAsyncDisposable
 {
 	private readonly List<IGraphDbTransaction> _transactions = new List<IGraphDbTransaction>();
 	private readonly ILogger<GraphDbDistributedTransactionManager> _logger;

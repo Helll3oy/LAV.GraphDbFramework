@@ -1,7 +1,4 @@
-﻿using LAV.GraphDbFramework.Core;
-using LAV.GraphDbFramework.Core.Specifications;
-using LAV.GraphDbFramework.Core.UnitOfWork;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -14,8 +11,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-//using LAV.GraphDbFramework.Neo4j;
+
+using LAV.GraphDbFramework.Core;
+using LAV.GraphDbFramework.Core.Specifications;
+using LAV.GraphDbFramework.Core.UnitOfWork;
 using LAV.GraphDbFramework.Memgraph;
+//using LAV.GraphDbFramework.Neo4j;
+using LAV.GraphDbFramework.Core.Transactions;
+using LAV.GraphDbFramework.Linq;
+using LAV.GraphDbFramework.QueryLanguage;
 
 namespace LAV.GraphDbFramework.Client;
 
@@ -40,43 +44,56 @@ public static class DependencyInjectionExtensions
             return poolProvider.Create<HashSet<string>>(new HashSetPoolPolicy());
         });
 
-        // Регистрируем спецификации как транзитные (transient)
-        services.AddTransient<NodeSpecification>();
+		// Менеджер транзакций
+		services.AddScoped<GraphDbDistributedTransactionManager>();
+
+		// Регистрируем спецификации как транзитные (transient)
+		services.AddTransient<NodeSpecification>();
         services.AddTransient<RelationshipSpecification>();
 
-        //services.AddSingleton<IGraphDbClient>(provider =>
-        //{
-        //    var clientFactory = provider.GetRequiredService<IGraphDbClientFactory>();
-        //    return clientFactory.Create();
+		// Универсальный клиент
+		services.AddScoped<MultiLanguageGraphDbClient>(provider =>
+		{
+			var innerClient = provider.GetRequiredService<IGraphDbClient>();
+			var providerFactory = provider.GetRequiredService<QueryLanguageProviderFactory>();
+			var logger = provider.GetService<ILogger<MultiLanguageGraphDbClient>>();
 
-        //    //var options = provider.GetRequiredService<IOptions<GraphDbOptions>>().Value;
-        //    //var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-        //    //return GraphDbClientFactory.CreateClient(options, loggerFactory);
-        //});
+			return new MultiLanguageGraphDbClient(innerClient, providerFactory, logger!);
+		});
 
-        //// Регистрируем фабрику Unit of Work
-        //services.AddScoped<IGraphDbUnitOfWorkFactory>(provider =>
-        //{
-        //    var client = provider.GetRequiredService<IGraphDbClient>();
-        //    return client.UnitOfWorkFactory;
-        //});
+		//services.AddSingleton<IGraphDbClient>(provider =>
+		//{
+		//    var clientFactory = provider.GetRequiredService<IGraphDbClientFactory>();
+		//    return clientFactory.Create();
 
-        //services.AddSingleton<ObjectPool<IGraphUnitOfWork>>(provider =>
-        //{
-        //	var factory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
-        //	var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();
-        //	return poolProvider.Create<IGraphUnitOfWork>(factory);
-        //});
+		//    //var options = provider.GetRequiredService<IOptions<GraphDbOptions>>().Value;
+		//    //var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+		//    //return GraphDbClientFactory.CreateClient(options, loggerFactory);
+		//});
 
-        //// Автоматическая регистрация репозиториев
-        //services.Scan(scan => scan
-        //	.FromAssembliesOf(typeof(IUserRepository))
-        //	.AddClasses(classes => classes.AssignableToAny(
-        //		new[] { typeof(BaseGraphRepository) }))
-        //	.AsImplementedInterfaces()
-        //	.WithScopedLifetime());
+		//// Регистрируем фабрику Unit of Work
+		//services.AddScoped<IGraphDbUnitOfWorkFactory>(provider =>
+		//{
+		//    var client = provider.GetRequiredService<IGraphDbClient>();
+		//    return client.UnitOfWorkFactory;
+		//});
 
-        return services;
+		//services.AddSingleton<ObjectPool<IGraphUnitOfWork>>(provider =>
+		//{
+		//	var factory = provider.GetRequiredService<IGraphUnitOfWorkFactory>();
+		//	var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();
+		//	return poolProvider.Create<IGraphUnitOfWork>(factory);
+		//});
+
+		//// Автоматическая регистрация репозиториев
+		//services.Scan(scan => scan
+		//	.FromAssembliesOf(typeof(IUserRepository))
+		//	.AddClasses(classes => classes.AssignableToAny(
+		//		new[] { typeof(BaseGraphRepository) }))
+		//	.AsImplementedInterfaces()
+		//	.WithScopedLifetime());
+
+		return services;
     }
 
     public static IServiceCollection AddGraphDb(this IServiceCollection services,
@@ -111,19 +128,52 @@ public static class DependencyInjectionExtensions
         return AddDefaults(services);
     }
 
-    //public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
-    //    IConfiguration configuration, string sectionName = "GraphDb:Neo4j")
-    //{
-    //    services.AddOptions<Neo4jOptions>()
-    //        .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
-    //        .ValidateOnStart();
+	//public static IServiceCollection AddNeo4jGraphDbClient(this IServiceCollection services,
+	//    IConfiguration configuration, string sectionName = "GraphDb:Neo4j")
+	//{
+	//    services.AddOptions<Neo4jOptions>()
+	//        .Configure(options => configuration.GetRequiredSection(sectionName).Bind(options))
+	//        .ValidateOnStart();
 
-    //    services.AddSingleton<Neo4jClient>();
+	//    services.AddSingleton<Neo4jClient>();
 
-    //    return AddDefaults(services);
-    //}
+	//    return AddDefaults(services);
+	//}
 
-    private sealed class ParameterPoolPolicy : IPooledObjectPolicy<Dictionary<string, object>>
+	public static IServiceCollection AddGraphDbLinqSupport(this IServiceCollection services)
+	{
+		services.AddScoped<IGraphDbQueryProvider, CypherQueryProvider>();
+		services.AddScoped<CypherExpressionTranslator>();
+
+		// LINQ-провайдер
+		//services.AddSingleton<CypherExpressionTranslator>();
+		//services.AddScoped<IGraphDbQueryProvider>(provider =>
+		//{
+		//	var graphClient = provider.GetRequiredService<IGraphDbClient>();
+		//	var logger = provider.GetService<ILogger<CypherQueryProvider>>();
+		//	return new CypherQueryProvider(graphClient, logger!);
+		//});
+
+		return services;
+	}
+
+	public static IServiceCollection AddQueryLanguageProvider<TProvider>(this IServiceCollection services,
+		QueryLanguageType language, Func<IServiceProvider, IGraphDbClient, TProvider> factory)
+		where TProvider : IQueryLanguageProvider
+	{
+		services.AddSingleton(provider =>
+		{
+			var providerFactory = provider.GetRequiredService<QueryLanguageProviderFactory>();
+			//var graphClient = provider.GetRequiredService<IGraphDbClient>();
+
+			providerFactory.RegisterProvider(language, (client) => factory(provider, client));
+			return providerFactory;
+		});
+
+		return services;
+	}
+
+	private sealed class ParameterPoolPolicy : IPooledObjectPolicy<Dictionary<string, object>>
     {
         public Dictionary<string, object> Create() => new(16);
 

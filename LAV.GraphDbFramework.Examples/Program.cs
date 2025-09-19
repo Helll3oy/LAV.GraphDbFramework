@@ -17,6 +17,8 @@ builder.Services.AddGraphDbErrorHandling(builder.Configuration);
 builder.Services.AddMemgraphGraphDbClient(builder.Configuration);
 //builder.Services.AddNeo4jGraphDbClient(builder.Configuration);
 
+builder.Services.AddGraphDbLinqSupport();
+
 builder.Services.AddSingleton(provider =>
 {
 	var poolProvider = provider.GetRequiredService<ObjectPoolProvider>();
@@ -36,7 +38,7 @@ builder.Services.AddTransient<QuerySpecification<User>>();
 
 var app = builder.Build();
 
-app.UseExceptionHandler();
+//app.UseExceptionHandler();
 
 //// Настройка pipeline
 //if (app.Environment.IsDevelopment())
@@ -48,7 +50,7 @@ app.UseExceptionHandler();
 //    // Используем наш обработчик исключений
 //    //app.UseExceptionHandler();
 
-//    app.UseGraphDbErrorHandling();
+    app.UseGraphDbErrorHandling();
 //}
 
 app.MapGet("/users/{id}", async (string id, IUserRepository userRepository) =>
@@ -64,6 +66,21 @@ app.MapGet("/users/{id}", async (string id, IUserRepository userRepository) =>
 		//throw;
         throw new GraphDbException($"User with id {id} not found", "NOT_FOUND_ERROR");
     }
+});
+
+app.MapGet("/users/tests", async (UserService userService) =>
+{
+	try
+	{
+		var users = await userService.GetActiveUsersAsync();
+
+		return Results.Ok(users);
+	}
+	catch (Exception ex)
+	{
+		//throw;
+		throw new GraphDbException(ex.Message, "TEST_ERROR", innerException: ex);
+	}
 });
 
 app.MapPost("/users", async (IUserRepository userRepository) =>

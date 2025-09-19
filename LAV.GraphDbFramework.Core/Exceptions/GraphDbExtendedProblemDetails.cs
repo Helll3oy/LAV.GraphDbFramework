@@ -53,7 +53,7 @@ public class GraphDbExtendedProblemDetails : ProblemDetails
         return errorCode switch
         {
             "CONNECTION_ERROR" or "TRANSACTION_ERROR" => StatusCodes.Status503ServiceUnavailable,
-            "QUERY_EXECUTION_ERROR" or "VALIDATION_ERROR" => StatusCodes.Status400BadRequest,
+            "QUERY_EXECUTION_ERROR" or "VALIDATION_ERROR" or "LINQ_TRANSLATOR_ERROR" => StatusCodes.Status400BadRequest,
             "MAPPING_ERROR" => StatusCodes.Status422UnprocessableEntity,
             "NOT_FOUND_ERROR" => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError
@@ -70,7 +70,8 @@ public class GraphDbExtendedProblemDetails : ProblemDetails
             "MAPPING_ERROR" => "https://graphdbframework.com/errors/mapping-error",
             "VALIDATION_ERROR" => "https://graphdbframework.com/errors/validation-error",
             "NOT_FOUND_ERROR" => "https://graphdbframework.com/errors/not-found-error",
-            _ => "https://graphdbframework.com/errors/internal-server-error"
+			"LINQ_TRANSLATOR_ERROR" => "https://graphdbframework.com/errors/linq-translator-error",
+			_ => "https://graphdbframework.com/errors/internal-server-error"
         };
     }
 }

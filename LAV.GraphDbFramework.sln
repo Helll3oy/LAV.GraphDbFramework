@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Memgra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Examples", "LAV.GraphDbFramework.Examples\LAV.GraphDbFramework.Examples.csproj", "{95151B16-EB0A-4A45-8174-33E4675999C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.QueryLanguage", "LAV.GraphDbFramework.QueryLanguage\LAV.GraphDbFramework.QueryLanguage.csproj", "{194163C3-1E53-47F7-A378-C4EA393041B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LAV.GraphDbFramework.Linq", "LAV.GraphDbFramework.Linq\LAV.GraphDbFramework.Linq.csproj", "{613EEA01-431B-4CA4-A7CE-7E8B7338E729}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,14 @@ Global
 		{95151B16-EB0A-4A45-8174-33E4675999C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95151B16-EB0A-4A45-8174-33E4675999C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95151B16-EB0A-4A45-8174-33E4675999C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{194163C3-1E53-47F7-A378-C4EA393041B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{194163C3-1E53-47F7-A378-C4EA393041B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{194163C3-1E53-47F7-A378-C4EA393041B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{194163C3-1E53-47F7-A378-C4EA393041B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{613EEA01-431B-4CA4-A7CE-7E8B7338E729}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{613EEA01-431B-4CA4-A7CE-7E8B7338E729}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{613EEA01-431B-4CA4-A7CE-7E8B7338E729}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{613EEA01-431B-4CA4-A7CE-7E8B7338E729}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
